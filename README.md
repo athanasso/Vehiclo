@@ -5,12 +5,13 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 ## Features
 
 ### Core
-- **Dashboard** — Vehicle health score gauge, quick stats, monthly spending chart
-- **Fuel Logs** — Track fill-ups with auto fuel economy calculation (L/100km)
+- **Dashboard** — Realistic Vehicle Health Score (factors in mileage, age, overdue service, and log consistency), quick stats, monthly spending chart
+- **Fuel Logs** — Track fill-ups with auto fuel economy calculation
 - **Trip Logs** — Log trips with distance tracking and cost estimates
-- **Maintenance** — Service history with smart reminders and overdue alerts
-- **Expense Tracking** — Category breakdown with visual charts (fuel, insurance, parking, tolls, etc.)
+- **Maintenance** — Service history with scheduled local push notifications for upcoming/overdue services
+- **Expense Tracking** — Category breakdown with visual charts
 - **Document Storage** — Store registration, insurance, inspection docs with expiry alerts
+- **Settings & Localization** — Dynamic unit switching (km/mi, L/gal, L/100km / MPG) and support for 15+ currencies
 
 ### AI Features
 - **Voice Logger** — Speak to log fuel, trips, or expenses with natural language parsing
@@ -38,6 +39,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 | Navigation | [Expo Router](https://docs.expo.dev/router/introduction/) (file-based) |
 | State | React Context + AsyncStorage |
 | Animations | React Native Reanimated + Animated API |
+| Push Notifications | expo-notifications |
 | Charts | react-native-svg |
 | Icons | @expo/vector-icons (Ionicons) |
 | Camera/Docs | expo-camera, expo-image-picker, expo-document-picker |
@@ -46,7 +48,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 
 ```
 app/
-  _layout.tsx              # Root layout with auth/theme/data providers
+  _layout.tsx              # Root layout with auth/theme/settings/data providers
   welcome.tsx              # Auth screen (splash → login/guest)
   (tabs)/
     _layout.tsx            # 5-tab navigator
@@ -75,6 +77,7 @@ components/
 contexts/
   AuthContext.tsx           # Auth state (guest + Supabase-ready)
   DataContext.tsx           # Central data CRUD + AsyncStorage
+  SettingsContext.tsx       # Units, currency, and localization state
   ThemeContext.tsx          # Dark/light/system theme persistence
 
 types/index.ts             # TypeScript data models
@@ -82,6 +85,7 @@ utils/
   storage.ts               # AsyncStorage wrapper
   calculations.ts          # Health score, fuel economy, trip comparison
   formatters.ts            # Currency, distance, date formatting
+  notifications.ts         # Local push notification scheduler
 ```
 
 ## Getting Started

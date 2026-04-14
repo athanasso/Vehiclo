@@ -1,8 +1,9 @@
 /**
- * More tab — Vehicles, documents, settings with dark mode toggle, about, sign out.
+ * More tab — Vehicles, documents, settings with dark mode toggle,
+ * units & currency picker, notifications toggle, about, sign out.
  */
-import React from 'react';
-import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, Alert, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +14,21 @@ import {
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme, type ThemeMode } from '@/contexts/ThemeContext';
+import { useSettings, CURRENCY_SYMBOLS } from '@/contexts/SettingsContext';
+import {
+  requestNotificationPermission, sendTestNotification,
+  syncMaintenanceReminders, getScheduledCount,
+} from '@/utils/notifications';
+
+const CURRENCIES = Object.keys(CURRENCY_SYMBOLS);
+const DISTANCE_UNITS = [
+  { key: 'km' as const, label: 'Kilometers (km)' },
+  { key: 'mi' as const, label: 'Miles (mi)' },
+];
+const FUEL_UNITS = [
+  { key: 'liters' as const, label: 'Liters (L)' },
+  { key: 'gallons' as const, label: 'Gallons (gal)' },
+];
 
 export default function MoreScreen() {
   const c = useThemeColors();
@@ -20,10 +36,18 @@ export default function MoreScreen() {
   const router = useRouter();
   const {
     vehicles, activeVehicle, vehicleDocuments,
-    vehicleSoloSessions, deleteVehicle,
+    vehicleSoloSessions, vehicleMaintenance, deleteVehicle,
   } = useData();
   const { user, signOut } = useAuth();
   const { themeMode, setThemeMode, isDark } = useTheme();
+  const { settings, updateSettings, currencySymbol, distanceLabel, volumeLabel } = useSettings();
+
+  const [showUnits, setShowUnits] = useState(false);
+  const [scheduledCount, setScheduledCount] = useState(0);
+
+  useEffect(() => {
+    getScheduledCount().then(setScheduledCount).catch(() => {});
+  }, []);
 
   const handleDeleteVehicle = (id: string, name: string) => {
     Alert.alert(
@@ -47,15 +71,28 @@ export default function MoreScreen() {
     );
   };
 
-  const handleThemeChange = () => {
-    const modes: ThemeMode[] = ['system', 'dark', 'light'];
-    const currentIndex = modes.indexOf(themeMode);
-    const nextMode = modes[(currentIndex + 1) % modes.length];
-    setThemeMode(nextMode);
+  const handleToggleNotifications = async (enabled: boolean) => {
+    if (enabled) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        Alert.alert('Permission Required', 'Please enable notifications in your device settings.');
+        return;
+      }
+      updateSettings({ notifications: true });
+      // Schedule reminders for current vehicle
+      if (activeVehicle && vehicleMaintenance.length > 0) {
+        await syncMaintenanceReminders(vehicleMaintenance, activeVehicle);
+        const count = await getScheduledCount();
+        setScheduledCount(count);
+      }
+      sendTestNotification();
+    } else {
+      updateSettings({ notifications: false });
+      setScheduledCount(0);
+    }
   };
 
   const themeLabel = themeMode === 'system' ? 'System' : themeMode === 'dark' ? 'Dark' : 'Light';
-  const themeIcon = themeMode === 'system' ? 'phone-portrait' : isDark ? 'moon' : 'sunny';
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
@@ -124,7 +161,7 @@ export default function MoreScreen() {
                   {activeVehicle.year} {activeVehicle.make} {activeVehicle.model}
                 </Text>
                 <Text style={{ color: c.textTertiary, fontSize: FontSizes.xs }}>
-                  {activeVehicle.plate} · {activeVehicle.odometer.toLocaleString()} km
+                  {activeVehicle.plate} · {activeVehicle.odometer.toLocaleString()} {distanceLabel}
                 </Text>
               </View>
             </View>
@@ -200,15 +237,17 @@ export default function MoreScreen() {
         {/* Settings */}
         <SectionHeader title="Settings" />
         <Card style={{ marginBottom: Spacing.xl }}>
-          {/* Dark Mode Toggle */}
+          {/* ── Dark Mode Toggle ── */}
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={handleThemeChange}
+            onPress={() => {
+              const modes: ThemeMode[] = ['system', 'dark', 'light'];
+              const i = modes.indexOf(themeMode);
+              setThemeMode(modes[(i + 1) % modes.length]);
+            }}
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingVertical: Spacing.md,
-              gap: Spacing.md,
+              flexDirection: 'row', alignItems: 'center',
+              paddingVertical: Spacing.md, gap: Spacing.md,
             }}
           >
             <View
@@ -218,25 +257,25 @@ export default function MoreScreen() {
                 alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <Ionicons name={themeIcon as any} size={20} color={Brand.accent} />
+              <Ionicons
+                name={themeMode === 'system' ? 'phone-portrait' : isDark ? 'moon' : 'sunny'}
+                size={20}
+                color={Brand.accent}
+              />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '500' }}>
-                Appearance
-              </Text>
+              <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '500' }}>Appearance</Text>
               <Text style={{ color: c.textTertiary, fontSize: FontSizes.sm, marginTop: 1 }}>
                 {themeLabel} mode
               </Text>
             </View>
-            {/* Theme pills */}
             <View style={{ flexDirection: 'row', gap: 4 }}>
               {(['system', 'dark', 'light'] as ThemeMode[]).map((mode) => (
                 <TouchableOpacity
                   key={mode}
                   onPress={() => setThemeMode(mode)}
                   style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
+                    paddingHorizontal: 10, paddingVertical: 4,
                     borderRadius: Radius.full,
                     backgroundColor: themeMode === mode ? Brand.accent + '20' : 'transparent',
                     borderWidth: 1,
@@ -246,8 +285,7 @@ export default function MoreScreen() {
                   <Text
                     style={{
                       color: themeMode === mode ? Brand.accent : c.textTertiary,
-                      fontSize: FontSizes.xs,
-                      fontWeight: '600',
+                      fontSize: FontSizes.xs, fontWeight: '600',
                     }}
                   >
                     {mode === 'system' ? '⚙️' : mode === 'dark' ? '🌙' : '☀️'}
@@ -256,20 +294,183 @@ export default function MoreScreen() {
               ))}
             </View>
           </TouchableOpacity>
+
           <Divider />
-          <ListItem
-            icon="globe"
-            iconColor={Brand.info}
-            title="Units & Currency"
-            subtitle="EUR · Kilometers · Liters"
-          />
+
+          {/* ── Units & Currency ── */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setShowUnits(!showUnits)}
+            style={{
+              flexDirection: 'row', alignItems: 'center',
+              paddingVertical: Spacing.md, gap: Spacing.md,
+            }}
+          >
+            <View
+              style={{
+                width: 40, height: 40, borderRadius: Radius.md,
+                backgroundColor: Brand.info + '15',
+                alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="globe" size={20} color={Brand.info} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '500' }}>
+                Units & Currency
+              </Text>
+              <Text style={{ color: c.textTertiary, fontSize: FontSizes.sm, marginTop: 1 }}>
+                {currencySymbol} · {distanceLabel} · {volumeLabel}
+              </Text>
+            </View>
+            <Ionicons
+              name={showUnits ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={c.textTertiary}
+            />
+          </TouchableOpacity>
+
+          {/* Expanded units picker */}
+          {showUnits && (
+            <View
+              style={{
+                backgroundColor: c.surfaceElevated,
+                borderRadius: Radius.md,
+                padding: Spacing.md,
+                marginBottom: Spacing.md,
+                gap: Spacing.lg,
+              }}
+            >
+              {/* Currency */}
+              <View>
+                <Text style={{ color: c.textSecondary, fontSize: FontSizes.xs, fontWeight: '600', marginBottom: Spacing.sm }}>
+                  CURRENCY
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {CURRENCIES.map((cur) => (
+                    <TouchableOpacity
+                      key={cur}
+                      onPress={() => updateSettings({ currency: cur })}
+                      style={{
+                        paddingHorizontal: 12, paddingVertical: 6,
+                        borderRadius: Radius.full,
+                        backgroundColor: settings.currency === cur ? Brand.info + '20' : 'transparent',
+                        borderWidth: 1,
+                        borderColor: settings.currency === cur ? Brand.info : c.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: settings.currency === cur ? Brand.info : c.textSecondary,
+                          fontSize: FontSizes.xs, fontWeight: '600',
+                        }}
+                      >
+                        {CURRENCY_SYMBOLS[cur]} {cur}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Distance */}
+              <View>
+                <Text style={{ color: c.textSecondary, fontSize: FontSizes.xs, fontWeight: '600', marginBottom: Spacing.sm }}>
+                  DISTANCE
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {DISTANCE_UNITS.map((u) => (
+                    <TouchableOpacity
+                      key={u.key}
+                      onPress={() => updateSettings({ distanceUnit: u.key })}
+                      style={{
+                        flex: 1, paddingVertical: 10,
+                        borderRadius: Radius.md, alignItems: 'center',
+                        backgroundColor: settings.distanceUnit === u.key ? Brand.info + '20' : 'transparent',
+                        borderWidth: 1,
+                        borderColor: settings.distanceUnit === u.key ? Brand.info : c.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: settings.distanceUnit === u.key ? Brand.info : c.textSecondary,
+                          fontSize: FontSizes.sm, fontWeight: '600',
+                        }}
+                      >
+                        {u.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Fuel */}
+              <View>
+                <Text style={{ color: c.textSecondary, fontSize: FontSizes.xs, fontWeight: '600', marginBottom: Spacing.sm }}>
+                  FUEL VOLUME
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {FUEL_UNITS.map((u) => (
+                    <TouchableOpacity
+                      key={u.key}
+                      onPress={() => updateSettings({ fuelUnit: u.key })}
+                      style={{
+                        flex: 1, paddingVertical: 10,
+                        borderRadius: Radius.md, alignItems: 'center',
+                        backgroundColor: settings.fuelUnit === u.key ? Brand.info + '20' : 'transparent',
+                        borderWidth: 1,
+                        borderColor: settings.fuelUnit === u.key ? Brand.info : c.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: settings.fuelUnit === u.key ? Brand.info : c.textSecondary,
+                          fontSize: FontSizes.sm, fontWeight: '600',
+                        }}
+                      >
+                        {u.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+          )}
+
           <Divider />
-          <ListItem
-            icon="notifications"
-            iconColor={Brand.warning}
-            title="Notifications"
-            subtitle="Maintenance reminders"
-          />
+
+          {/* ── Notifications ── */}
+          <View
+            style={{
+              flexDirection: 'row', alignItems: 'center',
+              paddingVertical: Spacing.md, gap: Spacing.md,
+            }}
+          >
+            <View
+              style={{
+                width: 40, height: 40, borderRadius: Radius.md,
+                backgroundColor: Brand.warning + '15',
+                alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="notifications" size={20} color={Brand.warning} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '500' }}>
+                Notifications
+              </Text>
+              <Text style={{ color: c.textTertiary, fontSize: FontSizes.sm, marginTop: 1 }}>
+                {settings.notifications
+                  ? `Enabled · ${scheduledCount} scheduled`
+                  : 'Disabled'}
+              </Text>
+            </View>
+            <Switch
+              value={settings.notifications}
+              onValueChange={handleToggleNotifications}
+              trackColor={{ false: c.border, true: Brand.primary + '50' }}
+              thumbColor={settings.notifications ? Brand.primary : c.textTertiary}
+            />
+          </View>
         </Card>
 
         {/* Account */}
@@ -283,7 +484,6 @@ export default function MoreScreen() {
                 title="Create Account"
                 subtitle="Save your data to the cloud"
                 onPress={() => {
-                  // TODO: Navigate to sign up flow
                   Alert.alert('Coming Soon', 'Account creation will be available with Supabase integration.');
                 }}
               />
@@ -294,10 +494,8 @@ export default function MoreScreen() {
             activeOpacity={0.7}
             onPress={handleSignOut}
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingVertical: Spacing.md,
-              gap: Spacing.md,
+              flexDirection: 'row', alignItems: 'center',
+              paddingVertical: Spacing.md, gap: Spacing.md,
             }}
           >
             <View

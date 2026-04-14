@@ -13,48 +13,91 @@ export function calculateHealthScore(
 ): number {
   let score = 100;
   const now = new Date();
+  const odo = vehicle.odometer;
 
-  // Deduct for overdue maintenance
+  // ── 1. Mileage-based degradation ────────────────────────────
+  // High-mileage vehicles start with a lower baseline
+  if (odo > 300000) score -= 25;
+  else if (odo > 200000) score -= 18;
+  else if (odo > 150000) score -= 12;
+  else if (odo > 100000) score -= 7;
+  else if (odo > 50000) score -= 3;
+
+  // ── 2. Vehicle age ──────────────────────────────────────────
+  const age = new Date().getFullYear() - vehicle.year;
+  if (age > 15) score -= 10;
+  else if (age > 10) score -= 6;
+  else if (age > 5) score -= 3;
+
+  // ── 3. No data penalty ──────────────────────────────────────
+  // Unknown maintenance history = not "excellent"
+  if (maintenance.length === 0) {
+    // The more km without ANY records, the worse it looks
+    if (odo > 50000) score -= 15;
+    else if (odo > 20000) score -= 10;
+    else score -= 5;
+  }
+  if (fuelLogs.length === 0 && vehicle.type !== 'electric') {
+    score -= 5; // no fuel tracking data at all
+  }
+
+  // ── 4. Overdue maintenance ──────────────────────────────────
   maintenance.forEach((m) => {
     if (m.nextDueDate) {
       const days = daysUntil(m.nextDueDate);
-      if (days < 0) score -= 15; // overdue
-      else if (days < 14) score -= 5; // due soon
+      if (days < -30) score -= 20;       // very overdue (>1 month)
+      else if (days < 0) score -= 12;     // overdue
+      else if (days < 14) score -= 4;     // due soon
     }
-    if (m.nextDueOdometer && vehicle.odometer >= m.nextDueOdometer) {
-      score -= 15;
+    if (m.nextDueOdometer && odo >= m.nextDueOdometer) {
+      score -= 15; // past odometer threshold
     }
   });
 
-  // Deduct if no maintenance in 6 months
-  const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
-  const recentMaint = maintenance.filter((m) => new Date(m.date) > sixMonthsAgo);
-  if (recentMaint.length === 0 && maintenance.length > 0) score -= 10;
+  // ── 5. Maintenance freshness ────────────────────────────────
+  if (maintenance.length > 0) {
+    const sortedMaint = [...maintenance].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+    const lastService = new Date(sortedMaint[0].date);
+    const monthsSinceService = (now.getTime() - lastService.getTime()) / (1000 * 60 * 60 * 24 * 30);
 
-  // Deduct for poor fuel economy trend
-  if (fuelLogs.length >= 3) {
-    const recent = fuelLogs.slice(-3);
-    const avgEfficiency = recent.reduce((sum, l) => {
-      if (!l.distance || l.distance === 0) return sum;
-      return sum + (l.liters / l.distance) * 100;
-    }, 0) / recent.filter(l => l.distance && l.distance > 0).length;
-    
-    if (avgEfficiency > 12) score -= 5; // high consumption
-    if (avgEfficiency > 15) score -= 10;
+    if (monthsSinceService > 18) score -= 12;
+    else if (monthsSinceService > 12) score -= 8;
+    else if (monthsSinceService > 6) score -= 4;
   }
 
-  // Bonus for consistent logging
-  if (fuelLogs.length >= 5) score += 5;
-  if (maintenance.length >= 3) score += 5;
+  // ── 6. Fuel economy trend ──────────────────────────────────
+  if (fuelLogs.length >= 3) {
+    const recent = fuelLogs.slice(-3);
+    const validLogs = recent.filter(l => l.distance && l.distance > 0);
+    if (validLogs.length > 0) {
+      const avgEfficiency = validLogs.reduce(
+        (sum, l) => sum + (l.liters / l.distance!) * 100, 0,
+      ) / validLogs.length;
 
-  return Math.max(0, Math.min(100, score));
+      if (avgEfficiency > 15) score -= 10;
+      else if (avgEfficiency > 12) score -= 5;
+    }
+  }
+
+  // ── 7. Logging consistency bonus ───────────────────────────
+  // Reward users who actually track their vehicle
+  if (fuelLogs.length >= 10) score += 5;
+  else if (fuelLogs.length >= 5) score += 3;
+
+  if (maintenance.length >= 5) score += 5;
+  else if (maintenance.length >= 3) score += 3;
+
+  return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 export function getHealthLabel(score: number): { label: string; color: string } {
   if (score >= 80) return { label: 'Excellent', color: '#00D4AA' };
   if (score >= 60) return { label: 'Good', color: '#74B9FF' };
   if (score >= 40) return { label: 'Fair', color: '#FDCB6E' };
-  return { label: 'Needs Attention', color: '#FF6B6B' };
+  if (score >= 20) return { label: 'Poor', color: '#E17055' };
+  return { label: 'Critical', color: '#FF6B6B' };
 }
 
 // ── Fuel Economy ───────────────────────────────────────────────

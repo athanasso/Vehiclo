@@ -8,6 +8,8 @@ import 'react-native-reanimated';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DataProvider } from '@/contexts/DataContext';
+import { SettingsProvider } from '@/contexts/SettingsContext';
+import { setupNotificationChannel } from '@/utils/notifications';
 import { Brand, Colors } from '@/constants/theme';
 
 const VehicloDark = {
@@ -42,6 +44,11 @@ function RootLayoutNav() {
   const { isDark } = useTheme();
   const router = useRouter();
   const segments = useSegments();
+
+  // Set up notification channel on mount
+  useEffect(() => {
+    setupNotificationChannel();
+  }, []);
 
   // Redirect based on auth state
   useEffect(() => {
@@ -128,9 +135,11 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <DataProvider>
-          <RootLayoutNav />
-        </DataProvider>
+        <SettingsProvider>
+          <DataProvider>
+            <RootLayoutNav />
+          </DataProvider>
+        </SettingsProvider>
       </AuthProvider>
     </ThemeProvider>
   );

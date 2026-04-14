@@ -48,6 +48,14 @@
         }
       ],
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#00D4AA",
+          "defaultChannel": "maintenance"
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "Allow Vehiclo to use your camera for scanning receipts and documents."

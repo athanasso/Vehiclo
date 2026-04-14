@@ -14,7 +14,7 @@ export function formatDistance(km: number): string {
 }
 
 export function formatDistanceFull(km: number): string {
-  return `${km.toLocaleString()} km`;
+  return km.toLocaleString();
 }
 
 export function formatFuelEfficiency(liters: number, km: number): string {

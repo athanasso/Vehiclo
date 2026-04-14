@@ -23,6 +23,8 @@ import {
   formatCurrency, formatDistanceFull, formatFuelEfficiency, formatRelativeDate,
   daysUntil,
 } from '@/utils/formatters';
+import { useSettings } from '@/contexts/SettingsContext';
+import { syncMaintenanceReminders } from '@/utils/notifications';
 
 export default function DashboardScreen() {
   const c = useThemeColors();
@@ -32,6 +34,14 @@ export default function DashboardScreen() {
     vehicles, activeVehicle, vehicleFuelLogs, vehicleMaintenance,
     vehicleTripLogs, vehicleExpenses,
   } = useData();
+  const { formatMoney, formatEfficiency, distanceLabel, settings } = useSettings();
+
+  // Sync notifications whenever maintenance records change
+  React.useEffect(() => {
+    if (activeVehicle && vehicleMaintenance.length > 0 && settings.notifications) {
+      syncMaintenanceReminders(vehicleMaintenance, activeVehicle).catch(() => {});
+    }
+  }, [vehicleMaintenance, activeVehicle, settings.notifications]);
 
   const healthScore = useMemo(() => {
     if (!activeVehicle) return 0;
@@ -170,7 +180,7 @@ export default function DashboardScreen() {
           <HealthGauge score={healthScore} />
           {activeVehicle && (
             <Text style={{ color: c.textTertiary, fontSize: FontSizes.sm, marginTop: Spacing.md }}>
-              {formatDistanceFull(activeVehicle.odometer)} on the clock
+              {formatDistanceFull(activeVehicle.odometer)} {distanceLabel} on the clock
             </Text>
           )}
         </GlassCard>
@@ -251,15 +261,15 @@ export default function DashboardScreen() {
           <StatCard
             icon="speedometer"
             label="Avg Consumption"
-            value={avgConsumption > 0 ? `${avgConsumption.toFixed(1)}` : '—'}
-            subtitle={avgConsumption > 0 ? 'L/100km' : 'No data'}
+            value={avgConsumption > 0 ? formatEfficiency(avgConsumption) : '—'}
+            subtitle={avgConsumption > 0 ? '' : 'No data'}
             color={Brand.primary}
           />
           <StatCard
             icon="cash"
-            label="Cost per km"
-            value={costPerKm > 0 ? `€${costPerKm.toFixed(2)}` : '—'}
-            subtitle={costPerKm > 0 ? 'per kilometer' : 'No data'}
+            label={`Cost per ${distanceLabel}`}
+            value={costPerKm > 0 ? formatMoney(costPerKm) : '—'}
+            subtitle={costPerKm > 0 ? `per ${distanceLabel}` : 'No data'}
             color={Brand.accent}
           />
         </View>
@@ -267,7 +277,7 @@ export default function DashboardScreen() {
           <StatCard
             icon="flame"
             label="Total Fuel"
-            value={formatCurrency(totalFuelCost)}
+            value={formatMoney(totalFuelCost)}
             subtitle={`${vehicleFuelLogs.length} fill-ups`}
             color={Brand.warningDark}
           />
@@ -275,7 +285,7 @@ export default function DashboardScreen() {
             icon="navigate"
             label="Trips"
             value={`${vehicleTripLogs.length}`}
-            subtitle={`${vehicleTripLogs.reduce((s, t) => s + t.distance, 0).toFixed(0)} km total`}
+            subtitle={`${vehicleTripLogs.reduce((s, t) => s + t.distance, 0).toFixed(0)} ${distanceLabel} total`}
             color={Brand.info}
           />
         </View>
@@ -308,14 +318,14 @@ export default function DashboardScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '600' }}>
-                  {log.liters.toFixed(1)}L @ €{log.pricePerLiter.toFixed(3)}
+                  {log.liters.toFixed(1)}L @ {formatMoney(log.pricePerLiter)}
                 </Text>
                 <Text style={{ color: c.textTertiary, fontSize: FontSizes.sm }}>
                   {log.station || 'Fuel'} · {formatRelativeDate(log.date)}
                 </Text>
               </View>
               <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '700' }}>
-                {formatCurrency(log.totalCost)}
+                {formatMoney(log.totalCost)}
               </Text>
             </View>
           </Card>
