@@ -1,50 +1,115 @@
-# Welcome to your Expo app 👋
+# Vehiclo 🚗
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+AI-powered vehicle management app built with Expo & React Native. Track fuel, trips, maintenance, and expenses — with voice logging, trip cost comparison, and gig worker support.
 
-## Get started
+## Features
 
-1. Install dependencies
+### Core
+- **Dashboard** — Vehicle health score gauge, quick stats, monthly spending chart
+- **Fuel Logs** — Track fill-ups with auto fuel economy calculation (L/100km)
+- **Trip Logs** — Log trips with distance tracking and cost estimates
+- **Maintenance** — Service history with smart reminders and overdue alerts
+- **Expense Tracking** — Category breakdown with visual charts (fuel, insurance, parking, tolls, etc.)
+- **Document Storage** — Store registration, insurance, inspection docs with expiry alerts
 
-   ```bash
-   npm install
-   ```
+### AI Features
+- **Voice Logger** — Speak to log fuel, trips, or expenses with natural language parsing
+- **OCR Scanning** — Camera-based receipt and document capture
+- **Trip Cost Comparison** — Compare your actual driving cost against Uber and taxi fares
 
-2. Start the app
+### Pro
+- **Solo Driver Mode** — Session tracking for gig workers (Uber, Bolt, Lyft, DoorDash) with earnings, fuel cost, and profit tracking
 
-   ```bash
-   npx expo start
-   ```
+### Multi-Vehicle & EV Support
+- Manage multiple vehicles with a horizontal vehicle selector
+- Full EV support: battery %, charge range, hybrid/electric type detection
+- Gas, diesel, electric, and hybrid vehicles supported
 
-In the output, you'll find options to open the app in a
+### Auth & Theme
+- Animated welcome/splash screen with loading transition
+- Continue as Guest, Google login, or email/password (Supabase-ready)
+- Dark / Light / System theme toggle with persistence
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Tech Stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+| Layer | Tech |
+|-------|------|
+| Framework | [Expo SDK 54](https://expo.dev) + React Native 0.81 |
+| Navigation | [Expo Router](https://docs.expo.dev/router/introduction/) (file-based) |
+| State | React Context + AsyncStorage |
+| Animations | React Native Reanimated + Animated API |
+| Charts | react-native-svg |
+| Icons | @expo/vector-icons (Ionicons) |
+| Camera/Docs | expo-camera, expo-image-picker, expo-document-picker |
 
-## Get a fresh project
+## Project Structure
 
-When you're ready, run:
+```
+app/
+  _layout.tsx              # Root layout with auth/theme/data providers
+  welcome.tsx              # Auth screen (splash → login/guest)
+  (tabs)/
+    _layout.tsx            # 5-tab navigator
+    index.tsx              # Dashboard
+    fuel.tsx               # Fuel & Trips
+    maintenance.tsx        # Service & Maintenance
+    expenses.tsx           # Expense tracking
+    more.tsx               # Settings, vehicles, pro features
+  modals/
+    add-vehicle.tsx        # Add vehicle form (gas/diesel/EV/hybrid)
+    add-fuel.tsx           # Add fuel log
+    add-trip.tsx           # Add trip with cost comparison
+    add-maintenance.tsx    # Add service record
+    add-expense.tsx        # Add expense
+    solo-driver.tsx        # Gig worker session tracking
+    trip-comparison.tsx    # Your cost vs Uber/taxi analysis
+    documents.tsx          # Document storage & scanning
+    voice-logger.tsx       # Voice-to-log AI parser
 
-```bash
-npm run reset-project
+components/
+  ui/index.tsx             # UI component library
+  HealthGauge.tsx          # Animated SVG health score ring
+  VehicleSelector.tsx      # Multi-car horizontal selector
+  MiniBarChart.tsx         # Monthly expense bar chart
+
+contexts/
+  AuthContext.tsx           # Auth state (guest + Supabase-ready)
+  DataContext.tsx           # Central data CRUD + AsyncStorage
+  ThemeContext.tsx          # Dark/light/system theme persistence
+
+types/index.ts             # TypeScript data models
+utils/
+  storage.ts               # AsyncStorage wrapper
+  calculations.ts          # Health score, fuel economy, trip comparison
+  formatters.ts            # Currency, distance, date formatting
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Getting Started
 
-## Learn more
+```bash
+# Install dependencies
+npm install
 
-To learn more about developing your project with Expo, look at the following resources:
+# Start development server
+npx expo start
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+# Run on Android
+npx expo run:android
 
-## Join the community
+# Run on web (for testing)
+npx expo start --web
+```
 
-Join our community of developers creating universal apps.
+## Supabase Integration
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+The auth system is pre-wired for Supabase. To connect:
+
+```bash
+npx expo install @supabase/supabase-js react-native-url-polyfill
+```
+
+Then update the placeholder methods in `contexts/AuthContext.tsx` — the UI requires zero changes.
+
+## License
+
+MIT
