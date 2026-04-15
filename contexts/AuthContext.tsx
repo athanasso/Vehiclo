@@ -13,8 +13,13 @@
 import React, {
   createContext, useContext, useState, useEffect, useCallback, type ReactNode,
 } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
 import { getData, setData, removeData } from '../utils/storage';
 import { supabase } from '../utils/supabase';
+
+// Inform WebBrowser about OAuth completion
+WebBrowser.maybeCompleteAuthSession();
 
 const AUTH_KEY = '@vehiclo_auth';
 
@@ -149,11 +154,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    // Basic OAuth setup — depends on platform (expo-auth-session usually needed for real mobile google oauth)
-    // For simplicity, we trigger standard supabase flow which works best on web.
-    // On native, this requires configuring deeply linked AuthSession.
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
-    if (error) throw error;
+    try {
+      // 1. Create a deep link redirect URI back into the Expo app
+      const redirectTo = makeRedirectUri();
+      
+      // 2. Ask Supabase for the Google OAuth URL (skipping auto-redirect since we are native)
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
+      });
+      if (error) throw error;
+      if (!data.url) throw new Error('No OAuth URL returned');
+
+      // 3. Open the browser for the user to securely log in
+      const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+      // 4. Handle the success callback!
+      if (res.type === 'success') {
+        const { url } = res;
+        // Parse the #access_token returned by Supabase and establish the true session
+        const queryParams = new URL(url.replace('#', '?')).searchParams;
+        const accessToken = queryParams.get('access_token');
+        const refreshToken = queryParams.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Google Sign-In Error:', error);
+      throw error;
+    }
   }, []);
 
   const signOut = useCallback(async () => {
