@@ -8,11 +8,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Brand, Spacing, FontSizes, Radius } from '@/constants/theme';
-import {
-  useThemeColors, Card, GlassCard, Button, SectionHeader,
-} from '@/components/ui';
+import { useThemeColors, Card, GlassCard, Button, SectionHeader } from '@/components/ui';
 import { useData } from '@/contexts/DataContext';
-import { todayISO, generateId } from '@/utils/formatters';
+import { todayISO } from '@/utils/formatters';
+import { startListening, stopListening, addSpeechResultsListener, addSpeechErrorListener } from '@/modules/mlkit-ocr';
+import { PermissionsAndroid, Platform } from 'react-native';
 
 type ParsedEntry = {
   type: 'fuel' | 'trip' | 'expense';
@@ -90,18 +90,52 @@ export default function VoiceLoggerModal() {
     pulseAnim.setValue(1);
   };
 
-  const handleMicPress = () => {
-    if (isListening) {
-      // Stop "listening"
+  React.useEffect(() => {
+    const resSub = addSpeechResultsListener((e) => {
+      setTranscript(e.text);
+      if (e.isFinal) {
+        setIsListening(false);
+        stopPulse();
+        const result = parseVoiceInput(e.text);
+        setParsed(result);
+        setSaved(false);
+      }
+    });
+
+    const errSub = addSpeechErrorListener((e) => {
+      console.log('Speech error:', e.error);
       setIsListening(false);
       stopPulse();
+      if (e.error !== '7') { // 7 is usually "No speech timeout", which we can silently ignore
+        setTranscript('Could not hear you properly.');
+      }
+    });
+
+    return () => {
+      resSub.remove();
+      errSub.remove();
+    };
+  }, []);
+
+  const handleMicPress = async () => {
+    if (isListening) {
+      setIsListening(false);
+      stopPulse();
+      stopListening();
     } else {
-      // Start "listening" — simulate with placeholder
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          alert("Microphone permission required!");
+          return;
+        }
+      }
       setIsListening(true);
       startPulse();
       setParsed(null);
       setSaved(false);
       setTranscript('');
+      startListening();
     }
   };
 

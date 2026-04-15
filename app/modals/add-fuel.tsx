@@ -7,8 +7,10 @@ import { useData } from '@/contexts/DataContext';
 import { todayISO } from '@/utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import { recognizeText } from '@/modules/mlkit-ocr';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AddFuelModal() {
@@ -26,6 +28,7 @@ export default function AddFuelModal() {
   const [fullTank, setFullTank] = useState(true);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
 
   const isBiFuel = activeVehicle?.type === 'bi_fuel';
   const totalCost = (parseFloat(liters) || 0) * (parseFloat(pricePerLiter) || 0);
@@ -36,6 +39,56 @@ export default function AddFuelModal() {
     .filter(l => l.vehicleId === activeVehicle?.id)
     .sort((a, b) => b.odometer - a.odometer)[0];
   const distance = prevLog ? parsedOdometer - prevLog.odometer : 0;
+
+  const handleScanReceipt = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Camera roll access is needed to read receipts.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets[0].uri) return;
+
+      setScanning(true);
+      const rawText = await recognizeText(result.assets[0].uri);
+      
+      // Heuristic parsing
+      const cleanText = rawText.replace(/,/g, '.'); // Normalize decimals
+      
+      // Find 3 decimal numbers (usually Liters/Gallons) e.g., 34.501
+      const volumeMatches = cleanText.match(/\b\d+\.\d{3}\b/g) || [];
+      const vols = volumeMatches.map(parseFloat).filter(v => v > 1 && v < 200);
+      const detectedVolume = vols.length > 0 ? Math.max(...vols) : 0;
+
+      // Find 2 decimal numbers (usually Currency)
+      const moneyMatches = cleanText.match(/\b\d+\.\d{2}\b/g) || [];
+      const moneys = moneyMatches.map(parseFloat).filter(m => m > 1 && m < 300);
+      // Usually total is the largest standard money amount on receipt
+      const detectedTotal = moneys.length > 0 ? Math.max(...moneys) : 0;
+
+      if (detectedVolume > 0 && detectedTotal > 0) {
+        setLiters(detectedVolume.toString());
+        setPricePerLiter((detectedTotal / detectedVolume).toFixed(3));
+        Alert.alert('Receipt Scanned!', `Found €${detectedTotal} and ${detectedVolume}L`);
+      } else if (detectedTotal > 0) {
+        // Just got total cost
+        Alert.alert('Partial Scan', `Found Total: €${detectedTotal}. Could not find volume reliably.`);
+      } else {
+        Alert.alert('Scan Failed', 'Could not confidently find fuel data looking at this format.');
+      }
+    } catch (e: any) {
+      Alert.alert('OCR Error', e.message || 'Failed to analyze text.');
+      console.log(e);
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!activeVehicle || !liters || !pricePerLiter) return;
@@ -71,7 +124,13 @@ export default function AddFuelModal() {
           <Ionicons name="close" size={28} color={c.text} />
         </TouchableOpacity>
         <Text style={{ color: c.text, fontSize: FontSizes.lg, fontWeight: '700' }}>Add Fuel Log</Text>
-        <View style={{ width: 28 }} />
+        {scanning ? (
+          <ActivityIndicator size="small" color={Brand.primary} />
+        ) : (
+          <TouchableOpacity onPress={handleScanReceipt}>
+            <Ionicons name="receipt-outline" size={24} color={Brand.primary} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView

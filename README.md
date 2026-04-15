@@ -13,9 +13,9 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 - **Document Storage** — Store registration, insurance, inspection docs with expiry alerts
 - **Settings & Localization** — Dynamic unit switching (km/mi, L/gal, L/100km / MPG) and support for 15+ currencies
 
-### AI Features
-- **Voice Logger** — Speak to log fuel, trips, or expenses with natural language parsing
-- **OCR Scanning** — Camera-based receipt and document capture
+### AI & ML Features
+- **Voice Logger** — Speak to log fuel, trips, or expenses with live transcriptions (Powered by Native Android `SpeechRecognizer` via custom Expo module)
+- **OCR Scanning** — Fully offline, on-device receipt scanning using Google ML Kit Text Recognition with heuristic pattern extraction
 - **Trip Cost Comparison** — Compare your actual driving cost against Uber and taxi fares
 
 ### Pro
@@ -41,7 +41,8 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 | Animations | React Native Reanimated + Animated API |
 | Database/Auth | [Supabase](https://supabase.com) (`@supabase/supabase-js`) |
 | Push Notifications | `expo-notifications` |
-| Background Tracking | Custom Native Kotlin Module (`ActivityRecognition`) |
+| Background Tracking | Custom Native Kotlin Module (`activity-recognition`) |
+| Machine Learning | Custom Native Kotlin Module (`mlkit-ocr` + `SpeechRecognizer`) |
 | Charts | `react-native-svg` |
 | Icons | @expo/vector-icons (Ionicons) |
 | Camera/Docs | expo-camera, expo-image-picker, expo-document-picker |
@@ -51,6 +52,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 ```
 modules/
   activity-recognition/    # Custom Expo Local Module tracking native IN_VEHICLE transitions
+  mlkit-ocr/               # Custom Native Module with Google ML Kit & Android SpeechRecognizer
 app/
   _layout.tsx              # Root layout with auth/theme/settings/data providers
   welcome.tsx              # Auth screen (splash → login/guest)
