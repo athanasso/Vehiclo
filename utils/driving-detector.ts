@@ -2,6 +2,7 @@
  * Wrapper for the Native Android Activity Recognition local module.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PermissionsAndroid, Platform } from 'react-native';
 import * as ActivityRecognition from '../modules/activity-recognition';
 import * as Location from 'expo-location';
 
@@ -10,6 +11,13 @@ const TRACKING_STATE_KEY = '@vehiclo_tracking_active';
 // ── Permission helpers ───────────────────────────────────────
 export async function requestLocationPermissions(): Promise<boolean> {
   try {
+    if (Platform.OS === 'android' && Platform.Version >= 29) {
+      const authAct = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION
+      );
+      if (authAct !== PermissionsAndroid.RESULTS.GRANTED) return false;
+    }
+
     const { status: fg } = await Location.requestForegroundPermissionsAsync();
     if (fg !== 'granted') return false;
 
