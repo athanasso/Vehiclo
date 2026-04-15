@@ -30,6 +30,7 @@ export default function AddVehicleModal() {
   const [model, setModel] = useState('');
   const [year, setYear] = useState(new Date().getFullYear().toString());
   const [plate, setPlate] = useState('');
+  const [vin, setVin] = useState('');
   const [type, setType] = useState<VehicleType>('gas');
   const [odometer, setOdometer] = useState('');
   const [fuelCapacity, setFuelCapacity] = useState('');
@@ -50,6 +51,7 @@ export default function AddVehicleModal() {
       model: model.trim(),
       year: parseInt(year) || new Date().getFullYear(),
       plate: plate.trim().toUpperCase(),
+      vin: vin.trim().toUpperCase() || undefined,
       type,
       odometer: parseInt(odometer) || 0,
       fuelCapacity: fuelCapacity ? parseFloat(fuelCapacity) : undefined,
@@ -127,6 +129,7 @@ export default function AddVehicleModal() {
           <Input label="Year" placeholder="2024" value={year} onChangeText={setYear} keyboardType="number-pad" containerStyle={{ flex: 1 }} />
           <Input label="Plate" placeholder="ABC-1234" value={plate} onChangeText={setPlate} autoCapitalize="characters" containerStyle={{ flex: 1 }} />
         </View>
+        <Input label="VIN (Optional)" placeholder="17-character VIN" value={vin} onChangeText={setVin} autoCapitalize="characters" icon="barcode-outline" />
         <Input label="Current Odometer" placeholder="50000" value={odometer} onChangeText={setOdometer} keyboardType="number-pad" suffix="km" />
 
         {/* Fuel/Battery Capacity */}

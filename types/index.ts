@@ -7,6 +7,7 @@ export interface Vehicle {
   model: string;
   year: number;
   plate: string;
+  vin?: string;
   type: VehicleType;
   odometer: number;
   fuelCapacity?: number;     // liters (gas/diesel/hybrid/primary)
