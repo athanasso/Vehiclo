@@ -16,7 +16,7 @@ const vehicleTypes: { key: VehicleType; label: string; icon: keyof typeof Ionico
   { key: 'diesel', label: 'Diesel', icon: 'water', color: Brand.accent },
   { key: 'electric', label: 'Electric', icon: 'flash', color: Brand.ev },
   { key: 'hybrid', label: 'Hybrid', icon: 'leaf', color: Brand.success },
-  { key: 'bi_fuel', label: 'Bi-Fuel (LPG)', icon: 'sync', color: Brand.info },
+  { key: 'bi_fuel', label: 'Bi-Fuel (LPG/CNG)', icon: 'sync', color: Brand.info },
 ];
 
 export default function AddVehicleModal() {
@@ -142,7 +142,7 @@ export default function AddVehicleModal() {
         )}
         {type === 'bi_fuel' && (
           <Input 
-            label="Secondary Tank Capacity (LPG/LNG)" 
+            label="Secondary Tank Capacity (LPG/LNG/CNG)" 
             placeholder="30" 
             value={secondaryFuelCapacity} 
             onChangeText={setSecondaryFuelCapacity} 

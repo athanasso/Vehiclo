@@ -1,14 +1,39 @@
 /**
  * Central data context managing all vehicles, logs, and records.
- * Persists to AsyncStorage.
+ * Acts as an Offline-First Optimistic Sync to Supabase.
  */
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { getData, setData, KEYS } from '../utils/storage';
 import { generateId, todayISO } from '../utils/formatters';
+import { supabase } from '../utils/supabase';
+import { useAuth } from './AuthContext';
 import type {
   Vehicle, FuelLog, TripLog, MaintenanceRecord,
   Expense, VehicleDocument, SoloSession,
 } from '../types';
+
+// ── Converters for Postgres snake_case ───────────────────────
+function toSnakeCaseObj(o: any): any {
+  if (o === null || typeof o !== 'object') return o;
+  if (Array.isArray(o)) return o.map(toSnakeCaseObj);
+  const n: any = {};
+  for (const key of Object.keys(o)) {
+    const sn = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    n[sn] = o[key];
+  }
+  return n;
+}
+
+function toCamelCaseObj(o: any): any {
+  if (o === null || typeof o !== 'object') return o;
+  if (Array.isArray(o)) return o.map(toCamelCaseObj);
+  const n: any = {};
+  for (const key of Object.keys(o)) {
+    const ca = key.replace(/([-_][a-z])/gi, ($1) => $1.toUpperCase().replace('_', ''));
+    n[ca] = o[key];
+  }
+  return n;
+}
 
 interface DataState {
   vehicles: Vehicle[];
@@ -60,6 +85,7 @@ interface DataContextType extends DataState {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
+  const { user, status } = useAuth();
   const [state, setState] = useState<DataState>({
     vehicles: [],
     activeVehicleId: null,
@@ -73,6 +99,46 @@ export function DataProvider({ children }: { children: ReactNode }) {
   });
 
   const loadAll = useCallback(async () => {
+    try {
+      // If fully authenticated with Supabase, pull from cloud!
+      if (status === 'authenticated' && !user?.isGuest && user?.id) {
+        const [
+          { data: vData }, { data: fData }, { data: tData }, 
+          { data: mData }, { data: eData }, { data: dData }, { data: sData }
+        ] = await Promise.all([
+          supabase.from('vehicles').select('*'),
+          supabase.from('fuel_logs').select('*'),
+          supabase.from('trip_logs').select('*'),
+          supabase.from('maintenance').select('*'),
+          supabase.from('expenses').select('*'),
+          supabase.from('documents').select('*'),
+          supabase.from('solo_sessions').select('*'),
+        ]);
+
+        const vehicles = toCamelCaseObj(vData) || [];
+        const activeId = await getData<string>(KEYS.ACTIVE_VEHICLE);
+
+        setState({
+          vehicles,
+          activeVehicleId: activeId || (vehicles?.[0]?.id ?? null),
+          fuelLogs: toCamelCaseObj(fData) || [],
+          tripLogs: toCamelCaseObj(tData) || [],
+          maintenance: toCamelCaseObj(mData) || [],
+          expenses: toCamelCaseObj(eData) || [],
+          documents: toCamelCaseObj(dData) || [],
+          soloSessions: toCamelCaseObj(sData) || [],
+          isLoading: false,
+        });
+        
+        // Also overwrite local cache so it works offline later
+        await setData(KEYS.VEHICLES, vehicles);
+        return;
+      }
+    } catch (e) {
+      console.warn('Supabase fetch failed, falling back to local cache', e);
+    }
+
+    // Fallback: local storage (Offline or Guest Mode)
     const [vehicles, activeId, fuel, trips, maint, expenses, docs, solo] = await Promise.all([
       getData<Vehicle[]>(KEYS.VEHICLES),
       getData<string>(KEYS.ACTIVE_VEHICLE),
@@ -95,37 +161,52 @@ export function DataProvider({ children }: { children: ReactNode }) {
       soloSessions: solo || [],
       isLoading: false,
     });
-  }, []);
+  }, [status, user?.id, user?.isGuest]);
 
   useEffect(() => {
     loadAll();
   }, [loadAll]);
 
-  // ── Persist helpers ────────────────────────────────────────
-  const persist = useCallback(async (key: string, data: unknown) => {
-    await setData(key, data);
-  }, []);
+  // ── Sync Helper ─────────────────────────────────────────────
+  const syncToSupabase = async (table: string, method: 'insert' | 'update' | 'delete', payload: any) => {
+    if (user?.isGuest || !user?.id) return; // Skip if guest
+    
+    try {
+      if (method === 'insert') {
+        await supabase.from(table).insert({ ...toSnakeCaseObj(payload), user_id: user.id });
+      } else if (method === 'update') {
+        const { id, ...rest } = payload;
+        await supabase.from(table).update(toSnakeCaseObj(rest)).eq('id', payload.id);
+      } else if (method === 'delete') {
+        await supabase.from(table).delete().eq('id', payload.id);
+      }
+    } catch (e) {
+      console.error(`Supabase sync failed for ${table}:`, e);
+    }
+  };
 
   // ── Vehicle CRUD ───────────────────────────────────────────
   const setActiveVehicle = useCallback((id: string) => {
     setState((p) => ({ ...p, activeVehicleId: id }));
-    persist(KEYS.ACTIVE_VEHICLE, id);
-  }, [persist]);
+    setData(KEYS.ACTIVE_VEHICLE, id);
+  }, []);
 
   const addVehicle = useCallback(async (v: Omit<Vehicle, 'id' | 'createdAt'>): Promise<Vehicle> => {
     const newV: Vehicle = { ...v, id: generateId(), createdAt: todayISO() };
     const updated = [...state.vehicles, newV];
     setState((p) => ({ ...p, vehicles: updated, activeVehicleId: newV.id }));
-    await persist(KEYS.VEHICLES, updated);
-    await persist(KEYS.ACTIVE_VEHICLE, newV.id);
+    await setData(KEYS.VEHICLES, updated);
+    await setData(KEYS.ACTIVE_VEHICLE, newV.id);
+    syncToSupabase('vehicles', 'insert', newV);
     return newV;
-  }, [state.vehicles, persist]);
+  }, [state.vehicles]);
 
   const updateVehicle = useCallback(async (id: string, updates: Partial<Vehicle>) => {
     const updated = state.vehicles.map((v) => (v.id === id ? { ...v, ...updates } : v));
     setState((p) => ({ ...p, vehicles: updated }));
-    await persist(KEYS.VEHICLES, updated);
-  }, [state.vehicles, persist]);
+    await setData(KEYS.VEHICLES, updated);
+    syncToSupabase('vehicles', 'update', { id, ...updates });
+  }, [state.vehicles]);
 
   const deleteVehicle = useCallback(async (id: string) => {
     const updated = state.vehicles.filter((v) => v.id !== id);
@@ -135,101 +216,110 @@ export function DataProvider({ children }: { children: ReactNode }) {
       vehicles: updated,
       activeVehicleId: p.activeVehicleId === id ? newActive : p.activeVehicleId,
     }));
-    await persist(KEYS.VEHICLES, updated);
-    if (state.activeVehicleId === id) await persist(KEYS.ACTIVE_VEHICLE, newActive);
-  }, [state.vehicles, state.activeVehicleId, persist]);
+    await setData(KEYS.VEHICLES, updated);
+    if (state.activeVehicleId === id) await setData(KEYS.ACTIVE_VEHICLE, newActive);
+    syncToSupabase('vehicles', 'delete', { id });
+  }, [state.vehicles, state.activeVehicleId]);
 
   // ── Fuel CRUD ──────────────────────────────────────────────
   const addFuelLog = useCallback(async (log: Omit<FuelLog, 'id'>) => {
     const newLog: FuelLog = { ...log, id: generateId() };
     const updated = [newLog, ...state.fuelLogs];
     setState((p) => ({ ...p, fuelLogs: updated }));
-    await persist(KEYS.FUEL_LOGS, updated);
-    // Update odometer
+    await setData(KEYS.FUEL_LOGS, updated);
+    syncToSupabase('fuel_logs', 'insert', newLog);
+
     if (log.odometer > (state.vehicles.find(v => v.id === log.vehicleId)?.odometer || 0)) {
-      const updatedVehicles = state.vehicles.map(v =>
-        v.id === log.vehicleId ? { ...v, odometer: log.odometer } : v
-      );
-      setState(p => ({ ...p, vehicles: updatedVehicles }));
-      await persist(KEYS.VEHICLES, updatedVehicles);
+      updateVehicle(log.vehicleId, { odometer: log.odometer });
     }
-  }, [state.fuelLogs, state.vehicles, persist]);
+  }, [state.fuelLogs, state.vehicles, updateVehicle]);
 
   const deleteFuelLog = useCallback(async (id: string) => {
     const updated = state.fuelLogs.filter((l) => l.id !== id);
     setState((p) => ({ ...p, fuelLogs: updated }));
-    await persist(KEYS.FUEL_LOGS, updated);
-  }, [state.fuelLogs, persist]);
+    await setData(KEYS.FUEL_LOGS, updated);
+    syncToSupabase('fuel_logs', 'delete', { id });
+  }, [state.fuelLogs]);
 
   // ── Trip CRUD ──────────────────────────────────────────────
   const addTripLog = useCallback(async (log: Omit<TripLog, 'id'>) => {
     const newLog: TripLog = { ...log, id: generateId() };
     const updated = [newLog, ...state.tripLogs];
     setState((p) => ({ ...p, tripLogs: updated }));
-    await persist(KEYS.TRIP_LOGS, updated);
-  }, [state.tripLogs, persist]);
+    await setData(KEYS.TRIP_LOGS, updated);
+    syncToSupabase('trip_logs', 'insert', newLog);
+  }, [state.tripLogs]);
 
   const deleteTripLog = useCallback(async (id: string) => {
     const updated = state.tripLogs.filter((l) => l.id !== id);
     setState((p) => ({ ...p, tripLogs: updated }));
-    await persist(KEYS.TRIP_LOGS, updated);
-  }, [state.tripLogs, persist]);
+    await setData(KEYS.TRIP_LOGS, updated);
+    syncToSupabase('trip_logs', 'delete', { id });
+  }, [state.tripLogs]);
 
   // ── Maintenance CRUD ───────────────────────────────────────
   const addMaintenance = useCallback(async (rec: Omit<MaintenanceRecord, 'id'>) => {
     const newRec: MaintenanceRecord = { ...rec, id: generateId() };
     const updated = [newRec, ...state.maintenance];
     setState((p) => ({ ...p, maintenance: updated }));
-    await persist(KEYS.MAINTENANCE, updated);
-  }, [state.maintenance, persist]);
+    await setData(KEYS.MAINTENANCE, updated);
+    syncToSupabase('maintenance', 'insert', newRec);
+  }, [state.maintenance]);
 
   const deleteMaintenance = useCallback(async (id: string) => {
     const updated = state.maintenance.filter((m) => m.id !== id);
     setState((p) => ({ ...p, maintenance: updated }));
-    await persist(KEYS.MAINTENANCE, updated);
-  }, [state.maintenance, persist]);
+    await setData(KEYS.MAINTENANCE, updated);
+    syncToSupabase('maintenance', 'delete', { id });
+  }, [state.maintenance]);
 
   // ── Expense CRUD ───────────────────────────────────────────
   const addExpense = useCallback(async (exp: Omit<Expense, 'id'>) => {
     const newExp: Expense = { ...exp, id: generateId() };
     const updated = [newExp, ...state.expenses];
     setState((p) => ({ ...p, expenses: updated }));
-    await persist(KEYS.EXPENSES, updated);
-  }, [state.expenses, persist]);
+    await setData(KEYS.EXPENSES, updated);
+    syncToSupabase('expenses', 'insert', newExp);
+  }, [state.expenses]);
 
   const deleteExpense = useCallback(async (id: string) => {
     const updated = state.expenses.filter((e) => e.id !== id);
     setState((p) => ({ ...p, expenses: updated }));
-    await persist(KEYS.EXPENSES, updated);
-  }, [state.expenses, persist]);
+    await setData(KEYS.EXPENSES, updated);
+    syncToSupabase('expenses', 'delete', { id });
+  }, [state.expenses]);
 
   // ── Document CRUD ──────────────────────────────────────────
   const addDocument = useCallback(async (doc: Omit<VehicleDocument, 'id' | 'createdAt'>) => {
     const newDoc: VehicleDocument = { ...doc, id: generateId(), createdAt: todayISO() };
     const updated = [newDoc, ...state.documents];
     setState((p) => ({ ...p, documents: updated }));
-    await persist(KEYS.DOCUMENTS, updated);
-  }, [state.documents, persist]);
+    await setData(KEYS.DOCUMENTS, updated);
+    syncToSupabase('documents', 'insert', newDoc);
+  }, [state.documents]);
 
   const deleteDocument = useCallback(async (id: string) => {
     const updated = state.documents.filter((d) => d.id !== id);
     setState((p) => ({ ...p, documents: updated }));
-    await persist(KEYS.DOCUMENTS, updated);
-  }, [state.documents, persist]);
+    await setData(KEYS.DOCUMENTS, updated);
+    syncToSupabase('documents', 'delete', { id });
+  }, [state.documents]);
 
   // ── Solo Session CRUD ──────────────────────────────────────
   const addSoloSession = useCallback(async (session: Omit<SoloSession, 'id'>) => {
     const newSession: SoloSession = { ...session, id: generateId() };
     const updated = [newSession, ...state.soloSessions];
     setState((p) => ({ ...p, soloSessions: updated }));
-    await persist(KEYS.SOLO_SESSIONS, updated);
-  }, [state.soloSessions, persist]);
+    await setData(KEYS.SOLO_SESSIONS, updated);
+    syncToSupabase('solo_sessions', 'insert', newSession);
+  }, [state.soloSessions]);
 
   const updateSoloSession = useCallback(async (id: string, updates: Partial<SoloSession>) => {
     const updated = state.soloSessions.map(s => s.id === id ? { ...s, ...updates } : s);
     setState(p => ({ ...p, soloSessions: updated }));
-    await persist(KEYS.SOLO_SESSIONS, updated);
-  }, [state.soloSessions, persist]);
+    await setData(KEYS.SOLO_SESSIONS, updated);
+    syncToSupabase('solo_sessions', 'update', { id, ...updates });
+  }, [state.soloSessions]);
 
   // ── Derived state ──────────────────────────────────────────
   const activeVehicle = state.vehicles.find((v) => v.id === state.activeVehicleId) ?? null;

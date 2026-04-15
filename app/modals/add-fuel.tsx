@@ -119,7 +119,7 @@ export default function AddFuelModal() {
                 }}
               >
                 <Ionicons name="sync" size={24} color={fuelType === 'secondary' ? Brand.warning : c.textTertiary} />
-                <Text style={{ color: fuelType === 'secondary' ? Brand.warning : c.textSecondary, fontWeight: '600', marginTop: 4 }}>Secondary (LPG)</Text>
+                <Text style={{ color: fuelType === 'secondary' ? Brand.warning : c.textSecondary, fontWeight: '600', marginTop: 4 }}>Secondary (LPG/CNG)</Text>
               </TouchableOpacity>
             </View>
           </>
