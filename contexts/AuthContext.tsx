@@ -14,6 +14,7 @@ import React, {
   createContext, useContext, useState, useEffect, useCallback, type ReactNode,
 } from 'react';
 import { getData, setData, removeData } from '../utils/storage';
+import { supabase } from '../utils/supabase';
 
 const AUTH_KEY = '@vehiclo_auth';
 
@@ -49,21 +50,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<User | null>(null);
 
-  // Check for existing session on app start
+  // Map Supabase User to our User type
+  const mapSupabaseUser = (sbUser: any): User => ({
+    id: sbUser.id,
+    email: sbUser.email,
+    name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0],
+    isGuest: false,
+    provider: 'email',
+  });
+
+  // Check for existing session or guest data on app start
   useEffect(() => {
-    (async () => {
+    let mounted = true;
+
+    async function initAuth() {
       try {
-        const savedUser = await getData<User>(AUTH_KEY);
-        if (savedUser) {
-          setUser(savedUser);
-          setStatus('authenticated');
-        } else {
-          setStatus('unauthenticated');
+        // 1. Check true auth
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (session && !error) {
+          if (mounted) {
+            setUser(mapSupabaseUser(session.user));
+            setStatus('authenticated');
+          }
+          return;
         }
-      } catch {
+
+        // 2. Fallback to Guest
+        const savedUser = await getData<User>(AUTH_KEY);
+        if (savedUser && savedUser.isGuest) {
+          if (mounted) {
+            setUser(savedUser);
+            setStatus('authenticated');
+          }
+          return;
+        }
+        
+        // 3. No auth at all
+        if (mounted) setStatus('unauthenticated');
+      } catch (err) {
+        console.warn('Auth init error:', err);
+        if (mounted) setStatus('unauthenticated');
+      }
+    }
+
+    initAuth();
+
+    // Listen to Supabase auth events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      if (event === 'SIGNED_IN' && session) {
+        await removeData(AUTH_KEY); // wipe guest data when logging in
+        setUser(mapSupabaseUser(session.user));
+        setStatus('authenticated');
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
         setStatus('unauthenticated');
       }
-    })();
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const continueAsGuest = useCallback(async () => {
@@ -78,71 +128,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('authenticated');
   }, []);
 
-  // ── Supabase Placeholders ──────────────────────────────────
-  // Replace these with real Supabase logic when integrating:
-  //
-  // import { supabase } from '../utils/supabase';
-  //
-  // const signInWithEmail = async (email, password) => {
-  //   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  //   if (error) throw error;
-  //   const user = { id: data.user.id, email, isGuest: false, provider: 'email' };
-  //   await setData(AUTH_KEY, user);
-  //   setUser(user);
-  //   setStatus('authenticated');
-  // };
-  //
-  // const signInWithGoogle = async () => {
-  //   const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
-  //   // Handle OAuth redirect...
-  // };
-
-  const signInWithEmail = useCallback(async (email: string, _password: string) => {
-    // TODO: Replace with Supabase auth
-    const emailUser: User = {
-      id: `email_${Date.now()}`,
-      email,
-      name: email.split('@')[0],
-      isGuest: false,
-      provider: 'email',
-    };
-    await setData(AUTH_KEY, emailUser);
-    setUser(emailUser);
-    setStatus('authenticated');
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
+    setStatus('loading');
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setStatus('unauthenticated');
+      throw error;
+    }
+    // state will update via onAuthStateChange
   }, []);
 
-  const signUpWithEmail = useCallback(async (email: string, _password: string) => {
-    // TODO: Replace with Supabase auth
-    const emailUser: User = {
-      id: `email_${Date.now()}`,
-      email,
-      name: email.split('@')[0],
-      isGuest: false,
-      provider: 'email',
-    };
-    await setData(AUTH_KEY, emailUser);
-    setUser(emailUser);
-    setStatus('authenticated');
+  const signUpWithEmail = useCallback(async (email: string, password: string) => {
+    setStatus('loading');
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      setStatus('unauthenticated');
+      throw error;
+    }
+    // state will update via onAuthStateChange
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    // TODO: Replace with Supabase Google OAuth
-    const googleUser: User = {
-      id: `google_${Date.now()}`,
-      name: 'Google User',
-      isGuest: false,
-      provider: 'google',
-    };
-    await setData(AUTH_KEY, googleUser);
-    setUser(googleUser);
-    setStatus('authenticated');
+    // Basic OAuth setup — depends on platform (expo-auth-session usually needed for real mobile google oauth)
+    // For simplicity, we trigger standard supabase flow which works best on web.
+    // On native, this requires configuring deeply linked AuthSession.
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    if (error) throw error;
   }, []);
 
   const signOut = useCallback(async () => {
-    // TODO: Add supabase.auth.signOut() here
+    setStatus('loading');
     await removeData(AUTH_KEY);
-    setUser(null);
-    setStatus('unauthenticated');
+    await supabase.auth.signOut();
+    // state will update via onAuthStateChange
   }, []);
 
   return (

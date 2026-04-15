@@ -484,7 +484,14 @@ export default function MoreScreen() {
                 title="Create Account"
                 subtitle="Save your data to the cloud"
                 onPress={() => {
-                  Alert.alert('Coming Soon', 'Account creation will be available with Supabase integration.');
+                  Alert.alert(
+                    'Create Account',
+                    'You will be signed out of your guest session so you can sign up. Proceed?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Yes, Sign Up', onPress: () => signOut() },
+                    ]
+                  );
                 }}
               />
               <Divider />
