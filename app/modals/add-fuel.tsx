@@ -1,15 +1,15 @@
 /**
  * Add Fuel Log Modal.
  */
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, KeyboardAvoidingView, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Brand, Spacing, FontSizes } from '@/constants/theme';
-import { useThemeColors, Button, Input, SectionHeader } from '@/components/ui';
+import { Button, Input, SectionHeader, useThemeColors } from '@/components/ui';
+import { Brand, FontSizes, Radius, Spacing } from '@/constants/theme';
 import { useData } from '@/contexts/DataContext';
 import { todayISO } from '@/utils/formatters';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AddFuelModal() {
   const c = useThemeColors();
@@ -22,10 +22,12 @@ export default function AddFuelModal() {
   const [liters, setLiters] = useState('');
   const [pricePerLiter, setPricePerLiter] = useState('');
   const [station, setStation] = useState('');
+  const [fuelType, setFuelType] = useState<'primary' | 'secondary'>('primary');
   const [fullTank, setFullTank] = useState(true);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const isBiFuel = activeVehicle?.type === 'bi_fuel';
   const totalCost = (parseFloat(liters) || 0) * (parseFloat(pricePerLiter) || 0);
   const parsedOdometer = parseInt(odometer) || 0;
 
@@ -46,6 +48,7 @@ export default function AddFuelModal() {
       pricePerLiter: parseFloat(pricePerLiter),
       totalCost,
       station: station.trim(),
+      fuelType: isBiFuel ? fuelType : undefined,
       fullTank,
       notes: notes.trim(),
       distance: distance > 0 ? distance : undefined,
@@ -84,6 +87,43 @@ export default function AddFuelModal() {
 
         <Input label="Date" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" icon="calendar" />
         <Input label="Odometer" value={odometer} onChangeText={setOdometer} keyboardType="number-pad" suffix="km" icon="speedometer" />
+        
+        {isBiFuel && (
+          <>
+            <SectionHeader title="Which fuel did you add?" />
+            <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xl }}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setFuelType('primary')}
+                style={{
+                  flex: 1, alignItems: 'center', padding: Spacing.md,
+                  borderRadius: Radius.md,
+                  backgroundColor: fuelType === 'primary' ? Brand.primary + '20' : c.surfaceElevated,
+                  borderWidth: 1.5,
+                  borderColor: fuelType === 'primary' ? Brand.primary : c.border,
+                }}
+              >
+                <Ionicons name="flame" size={24} color={fuelType === 'primary' ? Brand.primary : c.textTertiary} />
+                <Text style={{ color: fuelType === 'primary' ? Brand.primary : c.textSecondary, fontWeight: '600', marginTop: 4 }}>Primary (Petrol)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setFuelType('secondary')}
+                style={{
+                  flex: 1, alignItems: 'center', padding: Spacing.md,
+                  borderRadius: Radius.md,
+                  backgroundColor: fuelType === 'secondary' ? Brand.warning + '20' : c.surfaceElevated,
+                  borderWidth: 1.5,
+                  borderColor: fuelType === 'secondary' ? Brand.warning : c.border,
+                }}
+              >
+                <Ionicons name="sync" size={24} color={fuelType === 'secondary' ? Brand.warning : c.textTertiary} />
+                <Text style={{ color: fuelType === 'secondary' ? Brand.warning : c.textSecondary, fontWeight: '600', marginTop: 4 }}>Secondary (LPG)</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
         
         {distance > 0 && (
           <Text style={{ color: Brand.primary, fontSize: FontSizes.sm, marginTop: -Spacing.sm, marginBottom: Spacing.md }}>

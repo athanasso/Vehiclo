@@ -52,7 +52,11 @@ export function VehicleSelector({ onAddVehicle }: VehicleSelectorProps) {
               }}
             >
               <Ionicons
-                name={v.type === 'electric' ? 'flash' : 'car-sport'}
+                name={
+                  v.type === 'electric' ? 'flash' :
+                  v.type === 'bi_fuel' ? 'sync' :
+                  'car-sport'
+                }
                 size={12}
                 color="#FFF"
               />

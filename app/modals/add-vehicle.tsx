@@ -16,6 +16,7 @@ const vehicleTypes: { key: VehicleType; label: string; icon: keyof typeof Ionico
   { key: 'diesel', label: 'Diesel', icon: 'water', color: Brand.accent },
   { key: 'electric', label: 'Electric', icon: 'flash', color: Brand.ev },
   { key: 'hybrid', label: 'Hybrid', icon: 'leaf', color: Brand.success },
+  { key: 'bi_fuel', label: 'Bi-Fuel (LPG)', icon: 'sync', color: Brand.info },
 ];
 
 export default function AddVehicleModal() {
@@ -32,6 +33,7 @@ export default function AddVehicleModal() {
   const [type, setType] = useState<VehicleType>('gas');
   const [odometer, setOdometer] = useState('');
   const [fuelCapacity, setFuelCapacity] = useState('');
+  const [secondaryFuelCapacity, setSecondaryFuelCapacity] = useState('');
   const [batteryCapacity, setBatteryCapacity] = useState('');
   const [fullRangeKm, setFullRangeKm] = useState('');
   const [color, setColor] = useState(VehicleColors[0]);
@@ -51,6 +53,7 @@ export default function AddVehicleModal() {
       type,
       odometer: parseInt(odometer) || 0,
       fuelCapacity: fuelCapacity ? parseFloat(fuelCapacity) : undefined,
+      secondaryFuelCapacity: secondaryFuelCapacity && type === 'bi_fuel' ? parseFloat(secondaryFuelCapacity) : undefined,
       batteryCapacity: isEV && batteryCapacity ? parseFloat(batteryCapacity) : undefined,
       fullRangeKm: isEV && fullRangeKm ? parseInt(fullRangeKm) : undefined,
       batteryPercent: isEV ? 100 : undefined,
@@ -85,14 +88,14 @@ export default function AddVehicleModal() {
       >
         {/* Vehicle Type */}
         <SectionHeader title="Vehicle Type" />
-        <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xl }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.xl }}>
           {vehicleTypes.map((vt) => (
             <TouchableOpacity
               key={vt.key}
               activeOpacity={0.7}
               onPress={() => setType(vt.key)}
               style={{
-                flex: 1, alignItems: 'center', padding: Spacing.md,
+                width: '31%', alignItems: 'center', padding: Spacing.md,
                 borderRadius: Radius.md,
                 backgroundColor: type === vt.key ? vt.color + '20' : c.surfaceElevated,
                 borderWidth: 1.5,
@@ -127,8 +130,25 @@ export default function AddVehicleModal() {
         <Input label="Current Odometer" placeholder="50000" value={odometer} onChangeText={setOdometer} keyboardType="number-pad" suffix="km" />
 
         {/* Fuel/Battery Capacity */}
-        {(type === 'gas' || type === 'diesel' || type === 'hybrid') && (
-          <Input label="Fuel Tank Capacity" placeholder="50" value={fuelCapacity} onChangeText={setFuelCapacity} keyboardType="decimal-pad" suffix="L" />
+        {(type === 'gas' || type === 'diesel' || type === 'hybrid' || type === 'bi_fuel') && (
+          <Input 
+            label={type === 'bi_fuel' ? 'Primary Tank Capacity (L)' : 'Fuel Tank Capacity (L)'} 
+            placeholder="50" 
+            value={fuelCapacity} 
+            onChangeText={setFuelCapacity} 
+            keyboardType="decimal-pad" 
+            suffix="L" 
+          />
+        )}
+        {type === 'bi_fuel' && (
+          <Input 
+            label="Secondary Tank Capacity (LPG/LNG)" 
+            placeholder="30" 
+            value={secondaryFuelCapacity} 
+            onChangeText={setSecondaryFuelCapacity} 
+            keyboardType="decimal-pad" 
+            suffix="L" 
+          />
         )}
         {isEV && (
           <>

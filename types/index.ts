@@ -1,8 +1,4 @@
-/**
- * Core data types for Vehiclo.
- */
-
-export type VehicleType = 'gas' | 'diesel' | 'electric' | 'hybrid';
+export type VehicleType = 'gas' | 'diesel' | 'electric' | 'hybrid' | 'bi_fuel';
 
 export interface Vehicle {
   id: string;
@@ -13,7 +9,8 @@ export interface Vehicle {
   plate: string;
   type: VehicleType;
   odometer: number;
-  fuelCapacity?: number;     // liters (gas/diesel/hybrid)
+  fuelCapacity?: number;     // liters (gas/diesel/hybrid/primary)
+  secondaryFuelCapacity?: number; // liters (for bi_fuel LPG/LNG tank)
   batteryCapacity?: number;  // kWh (electric/hybrid)
   batteryPercent?: number;   // current EV charge
   fullRangeKm?: number;     // EV full charge range
@@ -30,6 +27,7 @@ export interface FuelLog {
   pricePerLiter: number;
   totalCost: number;
   station?: string;
+  fuelType?: 'primary' | 'secondary'; // distinguishing tanks for bi_fuel
   fullTank: boolean;
   notes?: string;
   distance?: number; // calculated from previous log
