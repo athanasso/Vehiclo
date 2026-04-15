@@ -7,7 +7,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 ### Core
 - **Dashboard** — Realistic Vehicle Health Score (factors in mileage, age, overdue service, and log consistency), quick stats, monthly spending chart
 - **Fuel Logs** — Track fill-ups with auto fuel economy calculation
-- **Trip Logs & Auto-Tracking** — Log trips manually or enable Background GPS Tracking to automatically detect and import your drives
+- **Trip Logs & Auto-Tracking** — Log trips manually or enable Native Android Activity Recognition to automatically detect and import your drives
 - **Maintenance** — Service history with scheduled local push notifications for upcoming/overdue services
 - **Expense Tracking** — Category breakdown with visual charts
 - **Document Storage** — Store registration, insurance, inspection docs with expiry alerts
@@ -41,7 +41,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 | Animations | React Native Reanimated + Animated API |
 | Database/Auth | [Supabase](https://supabase.com) (`@supabase/supabase-js`) |
 | Push Notifications | `expo-notifications` |
-| Background GPS | `expo-location` + `expo-task-manager` |
+| Background Tracking | Custom Native Kotlin Module (`ActivityRecognition`) |
 | Charts | `react-native-svg` |
 | Icons | @expo/vector-icons (Ionicons) |
 | Camera/Docs | expo-camera, expo-image-picker, expo-document-picker |
@@ -49,6 +49,8 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 ## Project Structure
 
 ```
+modules/
+  activity-recognition/    # Custom Expo Local Module tracking native IN_VEHICLE transitions
 app/
   _layout.tsx              # Root layout with auth/theme/settings/data providers
   welcome.tsx              # Auth screen (splash → login/guest)

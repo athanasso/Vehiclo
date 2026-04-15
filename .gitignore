@@ -42,3 +42,8 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Expo local module native build artifacts
+modules/*/android/build/
+modules/*/android/.gradle/
+modules/*/android/.cxx/
