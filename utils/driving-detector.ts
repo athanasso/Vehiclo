@@ -9,39 +9,42 @@ import * as Location from 'expo-location';
 const TRACKING_STATE_KEY = '@vehiclo_tracking_active';
 
 // ── Permission helpers ───────────────────────────────────────
-export async function requestLocationPermissions(): Promise<boolean> {
-  try {
-    if (Platform.OS === 'android' && Platform.Version >= 29) {
-      const authAct = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION
-      );
-      if (authAct !== PermissionsAndroid.RESULTS.GRANTED) return false;
+export async function requestLocationPermissions(): Promise<void> {
+  if (Platform.OS === 'android' && Platform.Version >= 29) {
+    const authAct = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION
+    );
+    if (authAct !== PermissionsAndroid.RESULTS.GRANTED) {
+      throw new Error('ACTIVITY_RECOGNITION permission denied.');
     }
+  }
 
-    const { status: fg } = await Location.requestForegroundPermissionsAsync();
-    if (fg !== 'granted') return false;
+  const { status: fg } = await Location.requestForegroundPermissionsAsync();
+  if (fg !== 'granted') {
+    throw new Error('Foreground Location permission denied.');
+  }
 
-    const { status: bg } = await Location.requestBackgroundPermissionsAsync();
-    return bg === 'granted';
-  } catch {
-    return false;
+  const { status: bg } = await Location.requestBackgroundPermissionsAsync();
+  if (bg !== 'granted') {
+    throw new Error('Background Location ("Always Allow") permission denied.');
   }
 }
 
 // ── Start / Stop tracking ────────────────────────────────────
 export async function startDrivingDetection(): Promise<boolean> {
-  const hasPermission = await requestLocationPermissions();
-  if (!hasPermission) return false;
+  await requestLocationPermissions();
 
-  const success = ActivityRecognition.startObserving();
+  const success = await ActivityRecognition.startObserving();
   if (success) {
     await AsyncStorage.setItem(TRACKING_STATE_KEY, 'true');
+    return true;
+  } else {
+    throw new Error('ActivityRecognition.startObserving() returned false from Native Code.');
   }
-  return success;
 }
 
 export async function stopDrivingDetection(): Promise<void> {
-  ActivityRecognition.stopObserving();
+  await ActivityRecognition.stopObserving();
   await AsyncStorage.setItem(TRACKING_STATE_KEY, 'false');
 }
 
@@ -61,7 +64,7 @@ export interface PendingTrip {
 export async function getPendingTrip(): Promise<PendingTrip | null> {
   try {
     // Read the distance directly from Native Android SharedPreferences
-    const distanceKm = ActivityRecognition.getPendingDistanceKm();
+    const distanceKm = await ActivityRecognition.getPendingDistanceKm();
     if (distanceKm < 0.5) return null;
 
     return {
@@ -76,5 +79,5 @@ export async function getPendingTrip(): Promise<PendingTrip | null> {
 }
 
 export async function clearPendingTrip(): Promise<void> {
-  ActivityRecognition.clearPendingDistance();
+  await ActivityRecognition.clearPendingDistance();
 }

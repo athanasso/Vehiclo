@@ -28,7 +28,7 @@ class ActivityRecognitionModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ActivityRecognition")
 
-    Function("startObserving") {
+    AsyncFunction("startObserving") { ->
       val transitions = mutableListOf<ActivityTransition>()
       
       transitions.add(
@@ -56,7 +56,7 @@ class ActivityRecognitionModule : Module() {
       }
     }
 
-    Function("stopObserving") {
+    AsyncFunction("stopObserving") { ->
       val client = ActivityRecognition.getClient(context)
       try {
         client.removeActivityTransitionUpdates(getPendingIntent())
@@ -69,11 +69,11 @@ class ActivityRecognitionModule : Module() {
       }
     }
 
-    Function("getPendingDistanceKm") {
+    AsyncFunction("getPendingDistanceKm") { ->
       TripStore.getPendingKm(context)
     }
 
-    Function("clearPendingDistance") {
+    AsyncFunction("clearPendingDistance") { ->
       TripStore.clearTrip(context)
     }
   }

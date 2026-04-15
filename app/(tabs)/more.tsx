@@ -508,19 +508,16 @@ export default function MoreScreen() {
             <Switch
               value={trackingOn}
               onValueChange={async (enabled) => {
-                if (enabled) {
-                  const started = await startDrivingDetection();
-                  if (!started) {
-                    Alert.alert(
-                      'Location Permission Required',
-                      'Please grant "Allow all the time" location permission in your device settings for background drive tracking.',
-                    );
-                    return;
+                try {
+                  if (enabled) {
+                    await startDrivingDetection();
+                    setTrackingOn(true);
+                  } else {
+                    await stopDrivingDetection();
+                    setTrackingOn(false);
                   }
-                  setTrackingOn(true);
-                } else {
-                  await stopDrivingDetection();
-                  setTrackingOn(false);
+                } catch (e: any) {
+                  Alert.alert('Tracker Failed', e.message || 'Unknown error');
                 }
               }}
               trackColor={{ false: c.border, true: Brand.primary + '50' }}
