@@ -42,14 +42,13 @@ export default function AddFuelModal() {
 
   const handleScanReceipt = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Camera roll access is needed to read receipts.');
+        Alert.alert('Permission Denied', 'Camera access is needed to scan receipts.');
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      const result = await ImagePicker.launchCameraAsync({
         quality: 0.8,
       });
 
