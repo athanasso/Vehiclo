@@ -7,7 +7,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 ### Core
 - **Dashboard** — Realistic Vehicle Health Score (factors in mileage, age, overdue service, and log consistency), quick stats, monthly spending chart
 - **Fuel Logs** — Track fill-ups with auto fuel economy calculation
-- **Trip Logs** — Log trips with distance tracking and cost estimates
+- **Trip Logs & Auto-Tracking** — Log trips manually or enable Background GPS Tracking to automatically detect and import your drives
 - **Maintenance** — Service history with scheduled local push notifications for upcoming/overdue services
 - **Expense Tracking** — Category breakdown with visual charts
 - **Document Storage** — Store registration, insurance, inspection docs with expiry alerts
@@ -28,7 +28,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 
 ### Auth & Theme
 - Animated welcome/splash screen with loading transition
-- Continue as Guest, Google login, or email/password (Supabase-ready)
+- **Authentication** — Fully integrated Supabase cloud authentication (Email/Password, Google OAuth, or Continue as Guest)
 - Dark / Light / System theme toggle with persistence
 
 ## Tech Stack
@@ -39,8 +39,10 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 | Navigation | [Expo Router](https://docs.expo.dev/router/introduction/) (file-based) |
 | State | React Context + AsyncStorage |
 | Animations | React Native Reanimated + Animated API |
-| Push Notifications | expo-notifications |
-| Charts | react-native-svg |
+| Database/Auth | [Supabase](https://supabase.com) (`@supabase/supabase-js`) |
+| Push Notifications | `expo-notifications` |
+| Background GPS | `expo-location` + `expo-task-manager` |
+| Charts | `react-native-svg` |
 | Icons | @expo/vector-icons (Ionicons) |
 | Camera/Docs | expo-camera, expo-image-picker, expo-document-picker |
 
@@ -73,6 +75,7 @@ components/
   HealthGauge.tsx          # Animated SVG health score ring
   VehicleSelector.tsx      # Multi-car horizontal selector
   MiniBarChart.tsx         # Monthly expense bar chart
+  ImportTripModal.tsx      # Bottom-sheet modal for importing auto-detected drives
 
 contexts/
   AuthContext.tsx           # Auth state (guest + Supabase-ready)
@@ -86,6 +89,8 @@ utils/
   calculations.ts          # Health score, fuel economy, trip comparison
   formatters.ts            # Currency, distance, date formatting
   notifications.ts         # Local push notification scheduler
+  driving-detector.ts      # Background location tracking & Haversine formula
+  supabase.ts              # Supabase client & config
 ```
 
 ## Getting Started
@@ -104,15 +109,14 @@ npx expo run:android
 npx expo start --web
 ```
 
-## Supabase Integration
+## Environment Variables
 
-The auth system is pre-wired for Supabase. To connect:
+Create a `.env` file in the root directory for Supabase authentication to work:
 
-```bash
-npx expo install @supabase/supabase-js react-native-url-polyfill
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
-
-Then update the placeholder methods in `contexts/AuthContext.tsx` — the UI requires zero changes.
 
 ## License
 

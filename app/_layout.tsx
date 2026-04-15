@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DataProvider } from '@/contexts/DataContext';
 import { SettingsProvider } from '@/contexts/SettingsContext';
 import { setupNotificationChannel } from '@/utils/notifications';
+import { ImportTripModal } from '@/components/ImportTripModal';
 import { Brand, Colors } from '@/constants/theme';
 
 const VehicloDark = {
@@ -126,6 +127,7 @@ function RootLayoutNav() {
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
       </Stack>
+      <ImportTripModal />
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </NavThemeProvider>
   );

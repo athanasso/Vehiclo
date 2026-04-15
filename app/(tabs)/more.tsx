@@ -19,6 +19,9 @@ import {
   requestNotificationPermission, sendTestNotification,
   syncMaintenanceReminders, getScheduledCount,
 } from '@/utils/notifications';
+import {
+  startDrivingDetection, stopDrivingDetection, isTrackingActive,
+} from '@/utils/driving-detector';
 
 const CURRENCIES = Object.keys(CURRENCY_SYMBOLS);
 const DISTANCE_UNITS = [
@@ -44,9 +47,11 @@ export default function MoreScreen() {
 
   const [showUnits, setShowUnits] = useState(false);
   const [scheduledCount, setScheduledCount] = useState(0);
+  const [trackingOn, setTrackingOn] = useState(false);
 
   useEffect(() => {
     getScheduledCount().then(setScheduledCount).catch(() => {});
+    isTrackingActive().then(setTrackingOn).catch(() => {});
   }, []);
 
   const handleDeleteVehicle = (id: string, name: string) => {
@@ -469,6 +474,57 @@ export default function MoreScreen() {
               onValueChange={handleToggleNotifications}
               trackColor={{ false: c.border, true: Brand.primary + '50' }}
               thumbColor={settings.notifications ? Brand.primary : c.textTertiary}
+            />
+          </View>
+
+          <Divider />
+
+          {/* ── Drive Tracking ── */}
+          <View
+            style={{
+              flexDirection: 'row', alignItems: 'center',
+              paddingVertical: Spacing.md, gap: Spacing.md,
+            }}
+          >
+            <View
+              style={{
+                width: 40, height: 40, borderRadius: Radius.md,
+                backgroundColor: Brand.primary + '15',
+                alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="navigate" size={20} color={Brand.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '500' }}>
+                Drive Tracking
+              </Text>
+              <Text style={{ color: c.textTertiary, fontSize: FontSizes.sm, marginTop: 1 }}>
+                {trackingOn
+                  ? 'Active — recording trips in background'
+                  : 'Off — enable to auto-detect drives'}
+              </Text>
+            </View>
+            <Switch
+              value={trackingOn}
+              onValueChange={async (enabled) => {
+                if (enabled) {
+                  const started = await startDrivingDetection();
+                  if (!started) {
+                    Alert.alert(
+                      'Location Permission Required',
+                      'Please grant "Allow all the time" location permission in your device settings for background drive tracking.',
+                    );
+                    return;
+                  }
+                  setTrackingOn(true);
+                } else {
+                  await stopDrivingDetection();
+                  setTrackingOn(false);
+                }
+              }}
+              trackColor={{ false: c.border, true: Brand.primary + '50' }}
+              thumbColor={trackingOn ? Brand.primary : c.textTertiary}
             />
           </View>
         </Card>
