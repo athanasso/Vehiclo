@@ -23,6 +23,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 
 ### Multi-Vehicle & Bi-Fuel Support
 - Manage multiple vehicles with a horizontal vehicle selector
+- **Full Vehicle Management** — View and edit vehicle details (VIN, license plates, capacities) directly from the app
 - **Bi-Fuel Engine Support** — Dashboard splits and isolates Primary (Petrol) and Secondary (LPG/CNG) fuel economy stats for precise engine health monitoring, alongside total blended cost
 - Full EV support: battery %, charge range, hybrid/electric type detection
 

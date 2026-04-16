@@ -54,16 +54,7 @@ export default function MoreScreen() {
     isTrackingActive().then(setTrackingOn).catch(() => {});
   }, []);
 
-  const handleDeleteVehicle = (id: string, name: string) => {
-    Alert.alert(
-      'Delete Vehicle',
-      `Are you sure you want to delete "${name}"? All associated data will be kept.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => deleteVehicle(id) },
-      ],
-    );
-  };
+
 
   const handleSignOut = () => {
     Alert.alert(
@@ -189,7 +180,7 @@ export default function MoreScreen() {
                 title={v.name}
                 subtitle={`${v.year} ${v.make} ${v.model}`}
                 value={v.plate}
-                onPress={() => handleDeleteVehicle(v.id, v.name)}
+                onPress={() => router.push({ pathname: '/modals/vehicle-details', params: { id: v.id } } as any)}
               />
             </React.Fragment>
           ))}
