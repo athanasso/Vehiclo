@@ -94,7 +94,7 @@ export default function AddMaintenanceModal() {
         {/* Type Selector */}
         <SectionHeader title="Service Type" />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.xl }}>
-          {MaintenanceTypes.map((mt) => (
+          {MaintenanceTypes.filter((mt) => mt.key !== 'lpg' || activeVehicle?.type === 'bi_fuel').map((mt) => (
             <TouchableOpacity
               key={mt.key}
               activeOpacity={0.7}

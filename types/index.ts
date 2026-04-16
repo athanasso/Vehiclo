@@ -51,7 +51,7 @@ export interface TripLog {
 
 export type MaintenanceType =
   | 'oil' | 'tires' | 'brakes' | 'battery'
-  | 'filter' | 'inspection' | 'insurance' | 'other' | 'general';
+  | 'filter' | 'inspection' | 'insurance' | 'other' | 'general' | 'lpg';
 
 export interface MaintenanceRecord {
   id: string;
