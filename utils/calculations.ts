@@ -101,8 +101,15 @@ export function getHealthLabel(score: number): { label: string; color: string } 
 }
 
 // ── Fuel Economy ───────────────────────────────────────────────
-export function calculateAvgConsumption(logs: FuelLog[]): number {
-  const withDistance = logs.filter((l) => l.distance && l.distance > 0);
+export function calculateAvgConsumption(logs: FuelLog[], filterType?: 'primary' | 'secondary'): number {
+  let filtered = logs;
+  if (filterType === 'primary') {
+    filtered = logs.filter((l) => !l.fuelType || l.fuelType === 'primary');
+  } else if (filterType === 'secondary') {
+    filtered = logs.filter((l) => l.fuelType === 'secondary');
+  }
+
+  const withDistance = filtered.filter((l) => l.distance && l.distance > 0);
   if (withDistance.length === 0) return 0;
   const totalLiters = withDistance.reduce((s, l) => s + l.liters, 0);
   const totalKm = withDistance.reduce((s, l) => s + (l.distance || 0), 0);

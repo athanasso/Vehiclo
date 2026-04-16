@@ -172,16 +172,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (user?.isGuest || !user?.id) return; // Skip if guest
     
     try {
+      let dbError = null;
       if (method === 'insert') {
-        await supabase.from(table).insert({ ...toSnakeCaseObj(payload), user_id: user.id });
+        const { error } = await supabase.from(table).insert({ ...toSnakeCaseObj(payload), user_id: user.id });
+        dbError = error;
       } else if (method === 'update') {
         const { id, ...rest } = payload;
-        await supabase.from(table).update(toSnakeCaseObj(rest)).eq('id', payload.id);
+        const { error } = await supabase.from(table).update(toSnakeCaseObj(rest)).eq('id', payload.id);
+        dbError = error;
       } else if (method === 'delete') {
-        await supabase.from(table).delete().eq('id', payload.id);
+        const { error } = await supabase.from(table).delete().eq('id', payload.id);
+        dbError = error;
       }
-    } catch (e) {
-      console.error(`Supabase sync failed for ${table}:`, e);
+
+      if (dbError) {
+        console.error(`Supabase ${method} error on ${table}:`, dbError);
+        alert(`Cloud Sync Failed (${table}): ${dbError.message}. Your data was saved locally but not to the cloud!`);
+      }
+    } catch (e: any) {
+      console.error(`Supabase sync exception for ${table}:`, e);
+      alert(`Cloud Sync Exception: ${e.message}`);
     }
   };
 

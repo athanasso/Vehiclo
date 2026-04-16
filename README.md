@@ -21,14 +21,15 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 ### Pro
 - **Solo Driver Mode** — Session tracking for gig workers (Uber, Bolt, Lyft, DoorDash) with earnings, fuel cost, and profit tracking
 
-### Multi-Vehicle & EV Support
+### Multi-Vehicle & Bi-Fuel Support
 - Manage multiple vehicles with a horizontal vehicle selector
+- **Bi-Fuel Engine Support** — Dashboard splits and isolates Primary (Petrol) and Secondary (LPG/CNG) fuel economy stats for precise engine health monitoring, alongside total blended cost
 - Full EV support: battery %, charge range, hybrid/electric type detection
-- Gas, diesel, electric, and hybrid vehicles supported
 
-### Auth & Theme
+### Auth & Sync
+- **Offline-First Storage** — Zero-latency UI updates using AsyncStorage, with optimistic background synchronization to Supabase
 - Animated welcome/splash screen with loading transition
-- **Authentication** — Fully integrated Supabase cloud authentication (Email/Password, Google OAuth, or Continue as Guest)
+- **Authentication** — Fully integrated Supabase cloud authentication (Email/Password, Google OAuth, or Guest Mode)
 - Dark / Light / System theme toggle with persistence
 
 ## Tech Stack
@@ -37,7 +38,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 |-------|------|
 | Framework | [Expo SDK 54](https://expo.dev) + React Native 0.81 |
 | Navigation | [Expo Router](https://docs.expo.dev/router/introduction/) (file-based) |
-| State | React Context + AsyncStorage |
+| State | React Context + AsyncStorage (Offline-First) |
 | Animations | React Native Reanimated + Animated API |
 | Database/Auth | [Supabase](https://supabase.com) (`@supabase/supabase-js`) |
 | Push Notifications | `expo-notifications` |

@@ -49,6 +49,8 @@ export default function DashboardScreen() {
   }, [activeVehicle, vehicleFuelLogs, vehicleMaintenance]);
 
   const avgConsumption = useMemo(() => calculateAvgConsumption(vehicleFuelLogs), [vehicleFuelLogs]);
+  const primaryConsumption = useMemo(() => calculateAvgConsumption(vehicleFuelLogs, 'primary'), [vehicleFuelLogs]);
+  const secondaryConsumption = useMemo(() => calculateAvgConsumption(vehicleFuelLogs, 'secondary'), [vehicleFuelLogs]);
   const costPerKm = useMemo(() => calculateCostPerKm(vehicleFuelLogs), [vehicleFuelLogs]);
   const totalFuelCost = useMemo(() => calculateTotalFuelCost(vehicleFuelLogs), [vehicleFuelLogs]);
 
@@ -258,13 +260,23 @@ export default function DashboardScreen() {
       <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.xl }}>
         <SectionHeader title="Statistics" />
         <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm }}>
-          <StatCard
-            icon="speedometer"
-            label="Avg Consumption"
-            value={avgConsumption > 0 ? formatEfficiency(avgConsumption) : '—'}
-            subtitle={avgConsumption > 0 ? '' : 'No data'}
-            color={Brand.primary}
-          />
+          {activeVehicle?.type === 'bi_fuel' ? (
+            <StatCard
+              icon="speedometer"
+              label="Efficiency (P / S)"
+              value={`${primaryConsumption > 0 ? primaryConsumption.toFixed(1) : '-'} / ${secondaryConsumption > 0 ? secondaryConsumption.toFixed(1) : '-'}`}
+              subtitle={avgConsumption > 0 ? `Blend: ${formatEfficiency(avgConsumption)}` : 'No data'}
+              color={Brand.primary}
+            />
+          ) : (
+            <StatCard
+              icon="speedometer"
+              label="Avg Consumption"
+              value={avgConsumption > 0 ? formatEfficiency(avgConsumption) : '—'}
+              subtitle={avgConsumption > 0 ? '' : 'No data'}
+              color={Brand.primary}
+            />
+          )}
           <StatCard
             icon="cash"
             label={`Cost per ${distanceLabel}`}
