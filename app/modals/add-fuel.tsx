@@ -1,7 +1,7 @@
 /**
  * Add Fuel Log Modal.
  */
-import { Button, Input, SectionHeader, useThemeColors } from '@/components/ui';
+import { Button, Input, DateInput, SectionHeader, useThemeColors } from '@/components/ui';
 import { Brand, FontSizes, Radius, Spacing } from '@/constants/theme';
 import { useData } from '@/contexts/DataContext';
 import { todayISO } from '@/utils/formatters';
@@ -143,7 +143,7 @@ export default function AddFuelModal() {
           </Text>
         )}
 
-        <Input label="Date" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" icon="calendar" />
+        <DateInput label="Date" value={date} onChangeText={setDate} />
         <Input label="Odometer" value={odometer} onChangeText={setOdometer} keyboardType="number-pad" suffix="km" icon="speedometer" />
         
         {isBiFuel && (

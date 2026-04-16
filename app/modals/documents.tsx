@@ -10,7 +10,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { Brand, Spacing, FontSizes, Radius } from '@/constants/theme';
 import {
-  useThemeColors, Card, GlassCard, Button, Input,
+  useThemeColors, Card, GlassCard, Button, Input, DateInput,
   SectionHeader, EmptyState, Badge, Divider, ListItem,
 } from '@/components/ui';
 import { useData } from '@/contexts/DataContext';
@@ -173,7 +173,7 @@ export default function DocumentsModal() {
             </View>
 
             <Input label="Document Name" value={docName} onChangeText={setDocName} placeholder="e.g. Car Insurance 2026" />
-            <Input label="Expiry Date (optional)" value={expiryDate} onChangeText={setExpiryDate} placeholder="YYYY-MM-DD" />
+            <DateInput label="Expiry Date (optional)" value={expiryDate} onChangeText={setExpiryDate} />
 
             <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md }}>
               <Button title="📎 File" onPress={handlePickDocument} variant="secondary" size="sm" style={{ flex: 1 }} />

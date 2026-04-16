@@ -11,7 +11,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 - **Maintenance** — Service history with scheduled local push notifications for upcoming/overdue services
 - **Expense Tracking** — Category breakdown with visual charts
 - **Document Storage** — Store registration, insurance, inspection docs with expiry alerts
-- **Settings & Localization** — Dynamic unit switching (km/mi, L/gal, L/100km / MPG) and support for 15+ currencies
+- **Settings & Localization** — Dynamic unit switching (km/mi, L/gal, L/100km / MPG), support for 15+ currencies, and localized native Date Pickers (DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD)
 
 ### AI & ML Features
 - **Voice Logger** — Speak to log fuel, trips, or expenses with live transcriptions (Powered by Native Android `SpeechRecognizer` via custom Expo module)

@@ -438,6 +438,37 @@ export default function MoreScreen() {
                   ))}
                 </View>
               </View>
+
+              {/* Date Format */}
+              <View>
+                <Text style={{ color: c.textSecondary, fontSize: FontSizes.xs, fontWeight: '600', marginBottom: Spacing.sm }}>
+                  DATE FORMAT
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {(['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'] as const).map((u) => (
+                    <TouchableOpacity
+                      key={u}
+                      onPress={() => updateSettings({ dateFormat: u })}
+                      style={{
+                        flex: 1, paddingVertical: 10,
+                        borderRadius: Radius.md, alignItems: 'center',
+                        backgroundColor: settings.dateFormat === u ? Brand.info + '20' : 'transparent',
+                        borderWidth: 1,
+                        borderColor: settings.dateFormat === u ? Brand.info : c.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: settings.dateFormat === u ? Brand.info : c.textSecondary,
+                          fontSize: FontSizes.xs, fontWeight: '600',
+                        }}
+                      >
+                        {u}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             </View>
           )}
 

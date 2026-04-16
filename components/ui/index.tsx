@@ -10,6 +10,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Brand, Colors, Radius, Spacing, FontSizes } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Platform } from 'react-native';
+import { useSettings } from '../../contexts/SettingsContext';
 
 // ── useThemeColors hook ────────────────────────────────────────
 export function useThemeColors() {
@@ -188,6 +191,74 @@ export function Input({ label, error, icon, suffix, containerStyle, style, ...pr
       </View>
       {error && (
         <Text style={{ color: Brand.danger, fontSize: FontSizes.xs, marginTop: Spacing.xs }}>{error}</Text>
+      )}
+    </View>
+  );
+}
+
+// ── DateInput ──────────────────────────────────────────────────
+interface DateInputProps {
+  label?: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  error?: string;
+  containerStyle?: ViewStyle;
+}
+
+export function DateInput({ label, value, onChangeText, error, containerStyle }: DateInputProps) {
+  const c = useThemeColors();
+  const { formatDateUser } = useSettings();
+  const [show, setShow] = React.useState(false);
+
+  const onChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') setShow(false);
+    if (selectedDate) {
+      // Create local ISO string manually to prevent timezone offset bugs shifting it a day back
+      const offset = selectedDate.getTimezoneOffset() * 60000;
+      const localDate = new Date(selectedDate.getTime() - offset);
+      onChangeText(localDate.toISOString().split('T')[0]);
+    }
+  };
+
+  const displayDate = value ? formatDateUser(value) : 'Select a date';
+
+  return (
+    <View style={[{ marginBottom: Spacing.md }, containerStyle]}>
+      {label && (
+        <Text style={{ color: c.textSecondary, fontSize: FontSizes.sm, marginBottom: Spacing.xs, fontWeight: '500' }}>
+          {label}
+        </Text>
+      )}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => setShow(true)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: c.inputBg,
+          borderRadius: Radius.md,
+          borderWidth: error ? 1.5 : 1,
+          borderColor: error ? Brand.danger : c.border,
+          paddingHorizontal: Spacing.md,
+          height: 48,
+        }}
+      >
+        <Ionicons name="calendar" size={18} color={c.textTertiary} style={{ marginRight: Spacing.md }} />
+        <Text style={{ flex: 1, color: value ? c.text : c.textTertiary, fontSize: FontSizes.md }}>
+          {displayDate}
+        </Text>
+      </TouchableOpacity>
+      {error && (
+        <Text style={{ color: Brand.danger, fontSize: FontSizes.xs, marginTop: Spacing.xs }}>{error}</Text>
+      )}
+
+      {show && (
+        <DateTimePicker
+          value={value ? new Date(value) : new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onChange}
+        />
       )}
     </View>
   );

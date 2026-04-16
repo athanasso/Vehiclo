@@ -110,6 +110,7 @@ export interface AppSettings {
   currency: string;
   distanceUnit: 'km' | 'mi';
   fuelUnit: 'liters' | 'gallons';
+  dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
   notifications: boolean;
   darkMode: 'auto' | 'dark' | 'light';
 }

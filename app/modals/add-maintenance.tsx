@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Brand, Spacing, FontSizes, Radius, MaintenanceTypes } from '@/constants/theme';
-import { useThemeColors, Button, Input, SectionHeader } from '@/components/ui';
+import { useThemeColors, Button, Input, DateInput, SectionHeader } from '@/components/ui';
 import { useData } from '@/contexts/DataContext';
 import { todayISO } from '@/utils/formatters';
 import type { MaintenanceType } from '@/types';
@@ -110,14 +110,14 @@ export default function AddMaintenanceModal() {
         </View>
 
         <Input label="Description" value={description} onChangeText={setDescription} placeholder="e.g. Full synthetic oil change" icon="create" />
-        <Input label="Date" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" icon="calendar" />
+        <DateInput label="Date" value={date} onChangeText={setDate} />
         <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
           <Input label="Cost" value={cost} onChangeText={setCost} keyboardType="decimal-pad" suffix="€" containerStyle={{ flex: 1 }} />
           <Input label="Odometer" value={odometer} onChangeText={setOdometer} keyboardType="number-pad" suffix="km" containerStyle={{ flex: 1 }} />
         </View>
 
         <SectionHeader title="Next Service (Optional)" />
-        <Input label="Next Due Date" value={nextDueDate} onChangeText={setNextDueDate} placeholder="YYYY-MM-DD" icon="calendar" />
+        <DateInput label="Next Due Date" value={nextDueDate} onChangeText={setNextDueDate} />
         <Input label="Next Due Odometer" value={nextDueOdo} onChangeText={setNextDueOdo} keyboardType="number-pad" suffix="km" icon="speedometer" />
 
         {selectedType && selectedType.intervalKm > 0 && (

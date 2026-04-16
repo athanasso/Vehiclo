@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   currency: 'EUR',
   distanceUnit: 'km',
   fuelUnit: 'liters',
+  dateFormat: 'DD/MM/YYYY',
   notifications: true,
   darkMode: 'dark',
 };
@@ -33,6 +34,8 @@ interface SettingsContextType {
   formatMoney: (amount: number) => string;
   /** Format fuel efficiency in user's units */
   formatEfficiency: (litersPer100km: number) => string;
+  /** Format date according to user preference */
+  formatDateUser: (dateStr: string) => string;
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -118,6 +121,24 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [settings.fuelUnit, settings.distanceUnit],
   );
 
+  const formatDateUser = useCallback(
+    (dateStr: string) => {
+      const d = new Date(dateStr);
+      const day = d.getDate().toString().padStart(2, '0');
+      const month = (d.getMonth() + 1).toString().padStart(2, '0');
+      const year = d.getFullYear();
+
+      switch (settings.dateFormat) {
+        case 'MM/DD/YYYY': return `${month}/${day}/${year}`;
+        case 'YYYY-MM-DD': return `${year}-${month}-${day}`;
+        case 'DD/MM/YYYY':
+        default:
+          return `${day}/${month}/${year}`;
+      }
+    },
+    [settings.dateFormat]
+  );
+
   if (!loaded) return null;
 
   return (
@@ -132,6 +153,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         formatVolumeValue,
         formatMoney,
         formatEfficiency,
+        formatDateUser,
       }}
     >
       {children}
