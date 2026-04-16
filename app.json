@@ -10,10 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vehiclo.app"
+      "bundleIdentifier": "com.athanasso.vehiclo"
     },
     "android": {
-      "package": "com.vehiclo.app",
+      "package": "com.athanasso.vehiclo",
       "adaptiveIcon": {
         "backgroundColor": "#0A0E17",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
