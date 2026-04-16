@@ -14,7 +14,18 @@ import {
 import { useData } from '@/contexts/DataContext';
 import { formatCurrency, formatDuration, formatDate, todayISO } from '@/utils/formatters';
 
-const platforms = ['Uber', 'Bolt', 'Lyft', 'DoorDash', 'Deliveroo', 'Other'];
+const platforms = [
+  'Uber',
+  'Lyft',
+  'Bolt',
+  'FreeNow',
+  'Cabify',
+  'DoorDash',
+  'Deliveroo',
+  'Glovo',
+  'Wolt',
+  'Other',
+];
 
 export default function SoloDriverModal() {
   const c = useThemeColors();
