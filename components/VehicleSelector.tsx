@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Brand, Radius, Spacing, FontSizes } from '../constants/theme';
 import { useThemeColors } from './ui';
 import { useData } from '../contexts/DataContext';
+import { Image } from 'expo-image';
 
 interface VehicleSelectorProps {
   onAddVehicle: () => void;
@@ -49,17 +50,22 @@ export function VehicleSelector({ onAddVehicle }: VehicleSelectorProps) {
                 backgroundColor: v.color,
                 alignItems: 'center',
                 justifyContent: 'center',
+                overflow: 'hidden',
               }}
             >
-              <Ionicons
-                name={
-                  v.type === 'electric' ? 'flash' :
-                  v.type === 'bi_fuel' ? 'sync' :
-                  'car-sport'
-                }
-                size={12}
-                color="#FFF"
-              />
+              {v.imageUri ? (
+                <Image source={{ uri: v.imageUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+              ) : (
+                <Ionicons
+                  name={
+                    v.type === 'electric' ? 'flash' :
+                    v.type === 'bi_fuel' ? 'sync' :
+                    'car-sport'
+                  }
+                  size={12}
+                  color="#FFF"
+                />
+              )}
             </View>
             <Text
               style={{

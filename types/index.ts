@@ -16,6 +16,7 @@ export interface Vehicle {
   batteryPercent?: number;   // current EV charge
   fullRangeKm?: number;     // EV full charge range
   color: string;             // avatar color
+  imageUri?: string;         // custom user uploaded car photo
   createdAt: string;
 }
 
@@ -63,6 +64,9 @@ export interface MaintenanceRecord {
   odometer: number;
   nextDueDate?: string;
   nextDueOdometer?: number;
+  notes?: string;
+  customReminderDate?: string;
+  customReminderNote?: string;
 }
 
 export type ExpenseCategory =

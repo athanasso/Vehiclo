@@ -1,8 +1,8 @@
 /**
  * Dashboard — Health score, quick stats, alerts, quick actions.
  */
-import React, { useMemo } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import React, { useMemo, useEffect } from 'react';
+import { View, Text, ScrollView, AppState, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +25,7 @@ import {
 } from '@/utils/formatters';
 import { useSettings } from '@/contexts/SettingsContext';
 import { syncMaintenanceReminders } from '@/utils/notifications';
+import { getPendingTrip, clearPendingTrip } from '@/utils/driving-detector';
 
 export default function DashboardScreen() {
   const c = useThemeColors();
@@ -37,11 +38,49 @@ export default function DashboardScreen() {
   const { formatMoney, formatEfficiency, distanceLabel, settings } = useSettings();
 
   // Sync notifications whenever maintenance records change
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeVehicle && vehicleMaintenance.length > 0 && settings.notifications) {
       syncMaintenanceReminders(vehicleMaintenance, activeVehicle).catch(() => {});
     }
   }, [vehicleMaintenance, activeVehicle, settings.notifications]);
+
+  // Check for pending auto-detected trips when app opens or returns to foreground
+  useEffect(() => {
+    const checkPendingTrips = async () => {
+      try {
+        const pending = await getPendingTrip();
+        if (pending && pending.distanceKm > 0) {
+          // Add small delay to ensure UI is ready
+          setTimeout(() => {
+            Alert.alert(
+              'Drive Detected 🚗',
+              `We detected background movement of approximately ${pending.distanceKm.toFixed(1)} km. Would you like to log this trip?`,
+              [
+                { text: 'Discard', style: 'cancel', onPress: () => clearPendingTrip() },
+                {
+                  text: 'Log Trip',
+                  style: 'default',
+                  onPress: async () => {
+                    await clearPendingTrip();
+                    router.push({ pathname: '/modals/add-trip', params: { distanceKm: pending.distanceKm.toString() } });
+                  },
+                },
+              ]
+            );
+          }, 500);
+        }
+      } catch (e) {
+        console.warn('Pending trip check failed', e);
+      }
+    };
+
+    checkPendingTrips();
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') checkPendingTrips();
+    });
+
+    return () => subscription.remove();
+  }, [router]);
 
   const healthScore = useMemo(() => {
     if (!activeVehicle) return 0;

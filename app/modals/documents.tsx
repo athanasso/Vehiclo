@@ -15,6 +15,8 @@ import {
 } from '@/components/ui';
 import { useData } from '@/contexts/DataContext';
 import { formatDate, daysUntil, todayISO } from '@/utils/formatters';
+import { getPrivateFileUrl } from '@/utils/supabase';
+import * as WebBrowser from 'expo-web-browser';
 import type { DocumentType } from '@/types';
 
 const docTypes: { key: DocumentType; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
@@ -85,6 +87,27 @@ export default function DocumentsModal() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => deleteDocument(id) },
     ]);
+  };
+
+  const handleViewDocument = async (doc: any) => {
+    let targetUri = doc.uri;
+
+    // Cloud fetching for Private Bucket Paths
+    if (!doc.uri.startsWith('file://')) {
+      const signedUrl = await getPrivateFileUrl('vehicle-documents', doc.uri);
+      if (!signedUrl) {
+         Alert.alert('Error', 'Could not securely retrieve private document from cloud.');
+         return;
+      }
+      targetUri = signedUrl;
+    }
+
+    try {
+      await WebBrowser.openBrowserAsync(targetUri);
+    } catch (e) {
+      console.warn('Could not launch document viewer', e);
+      Alert.alert('Error', 'Could not open the document on this device.');
+    }
   };
 
   // Documents with expiry alerts
@@ -207,31 +230,37 @@ export default function DocumentsModal() {
             return (
               <Card key={doc.id} style={{ marginBottom: Spacing.sm }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
-                  <View
-                    style={{
-                      width: 44, height: 44, borderRadius: Radius.md,
-                      backgroundColor: (dt?.color || Brand.primary) + '15',
-                      alignItems: 'center', justifyContent: 'center',
-                    }}
+                  <TouchableOpacity
+                    onPress={() => handleViewDocument(doc)}
+                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}
+                    activeOpacity={0.7}
                   >
-                    <Ionicons name={dt?.icon || 'document'} size={22} color={dt?.color || Brand.primary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '600' }}>
-                      {doc.name}
-                    </Text>
-                    <Text style={{ color: c.textTertiary, fontSize: FontSizes.xs }}>
-                      {dt?.label || doc.type} · Added {formatDate(doc.createdAt)}
-                    </Text>
-                    {doc.expiryDate && (
-                      <Badge
-                        text={`Expires: ${formatDate(doc.expiryDate)}`}
-                        color={daysUntil(doc.expiryDate) <= 14 ? Brand.danger : Brand.info}
-                      />
-                    )}
-                  </View>
-                  <TouchableOpacity onPress={() => handleDelete(doc.id, doc.name)}>
-                    <Ionicons name="trash-outline" size={18} color={c.textTertiary} />
+                    <View
+                      style={{
+                        width: 44, height: 44, borderRadius: Radius.md,
+                        backgroundColor: (dt?.color || Brand.primary) + '15',
+                        alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      <Ionicons name={dt?.icon || 'document'} size={22} color={dt?.color || Brand.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '600' }}>
+                        {doc.name}
+                      </Text>
+                      <Text style={{ color: c.textTertiary, fontSize: FontSizes.xs }}>
+                        {dt?.label || doc.type} · Added {formatDate(doc.createdAt)}
+                      </Text>
+                      {doc.expiryDate && (
+                        <Badge
+                          text={`Expires: ${formatDate(doc.expiryDate)}`}
+                          color={daysUntil(doc.expiryDate) <= 14 ? Brand.danger : Brand.info}
+                        />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(doc.id, doc.name)} style={{ padding: Spacing.xs }}>
+                    <Ionicons name="trash-outline" size={20} color={Brand.danger} />
                   </TouchableOpacity>
                 </View>
               </Card>

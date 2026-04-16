@@ -7,7 +7,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 ### Core
 - **Dashboard** — Realistic Vehicle Health Score (factors in mileage, age, overdue service, and log consistency), quick stats, monthly spending chart
 - **Fuel Logs** — Track fill-ups with auto fuel economy calculation
-- **Trip Logs & Auto-Tracking** — Log trips manually or enable Native Android Activity Recognition to automatically detect and import your drives
+- **Trip Logs & Auto-Tracking** — Log trips manually. Alternatively, enable Native Android Activity Recognition background tracking: upon returning to the app, the dashboard proactively intercepts pending drives, prompting you to log them with smart auto-filling math and multi-vehicle UI routing.
 - **Maintenance** — Service history with smart auto-fill intervals (time & mileage) and scheduled local push notifications for upcoming/overdue services
 - **Expense Tracking** — Category breakdown with visual charts
 - **Document Storage** — Store registration, insurance, inspection docs with expiry alerts
@@ -27,8 +27,11 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 - **Bi-Fuel Engine Support** — Dashboard splits and isolates Primary (Petrol) and Secondary (LPG/CNG) fuel economy stats for precise engine health monitoring, alongside total blended cost
 - Full EV support: battery %, charge range, hybrid/electric type detection
 
-### Auth & Sync
-- **Offline-First Storage** — Zero-latency UI updates using AsyncStorage, with optimistic background synchronization to Supabase
+### Auth, Sync & Cloud Storage
+- **Offline-First Storage** — Zero-latency UI updates using AsyncStorage, with optimistic background synchronization to Supabase Postgres.
+- **Supabase Cloud Storage Pipeline** — Built-in native file interception utilizing `FormData` multipart payloads to bypass React Native core Blob network bugs.
+  - **Public Avatars**: Custom uploaded vehicle photos and synced Google OAuth user profile pictures pull securely via Public endpoints, enabling aggressive `expo-image` local caching without token overhead.
+  - **Private Document Vault**: Sensitive vehicle registrations, receipts, and insurance PDFs are funneled into a strictly RLS-protected Private Bucket. The app dynamically generates secure, ephemeral 1-hour Signed URLs for native `WebBrowser` viewing. 
 - Animated welcome/splash screen with loading transition
 - **Authentication** — Fully integrated Supabase cloud authentication (Email/Password, Google OAuth, or Guest Mode)
 - Dark / Light / System theme toggle with persistence

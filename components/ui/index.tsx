@@ -13,6 +13,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Platform } from 'react-native';
 import { useSettings } from '../../contexts/SettingsContext';
+import { Image } from 'expo-image';
 
 // ── useThemeColors hook ────────────────────────────────────────
 export function useThemeColors() {
@@ -466,11 +467,12 @@ interface ListItemProps {
   title: string;
   subtitle?: string;
   value?: string;
+  imageUri?: string;
   onPress?: () => void;
   trailing?: ReactNode;
 }
 
-export function ListItem({ icon, iconColor, title, subtitle, value, onPress, trailing }: ListItemProps) {
+export function ListItem({ icon, iconColor, title, subtitle, value, imageUri, onPress, trailing }: ListItemProps) {
   const c = useThemeColors();
   return (
     <TouchableOpacity
@@ -491,9 +493,14 @@ export function ListItem({ icon, iconColor, title, subtitle, value, onPress, tra
           backgroundColor: (iconColor || Brand.primary) + '15',
           alignItems: 'center',
           justifyContent: 'center',
+          overflow: 'hidden',
         }}
       >
-        <Ionicons name={icon} size={20} color={iconColor || Brand.primary} />
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+        ) : (
+          <Ionicons name={icon} size={20} color={iconColor || Brand.primary} />
+        )}
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '500' }}>{title}</Text>

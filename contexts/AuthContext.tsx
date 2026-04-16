@@ -61,7 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: sbUser.email,
     name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0],
     isGuest: false,
-    provider: 'email',
+    avatarUrl: sbUser.user_metadata?.avatar_url || undefined,
+    provider: sbUser.app_metadata?.provider || 'email',
   });
 
   // Check for existing session or guest data on app start

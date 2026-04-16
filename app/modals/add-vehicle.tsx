@@ -10,6 +10,8 @@ import { Brand, Spacing, FontSizes, Radius, VehicleColors } from '@/constants/th
 import { useThemeColors, Card, Button, Input, SectionHeader } from '@/components/ui';
 import { useData } from '@/contexts/DataContext';
 import type { VehicleType } from '@/types';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 
 const vehicleTypes: { key: VehicleType; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
   { key: 'gas', label: 'Gasoline', icon: 'flame', color: Brand.primary },
@@ -38,9 +40,22 @@ export default function AddVehicleModal() {
   const [batteryCapacity, setBatteryCapacity] = useState('');
   const [fullRangeKm, setFullRangeKm] = useState('');
   const [color, setColor] = useState(VehicleColors[0]);
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const isEV = type === 'electric' || type === 'hybrid';
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim() || !make.trim() || !model.trim()) return;
@@ -60,6 +75,7 @@ export default function AddVehicleModal() {
       fullRangeKm: isEV && fullRangeKm ? parseInt(fullRangeKm) : undefined,
       batteryPercent: isEV ? 100 : undefined,
       color,
+      imageUri: imageUri || undefined,
     });
     router.back();
   };
@@ -160,8 +176,10 @@ export default function AddVehicleModal() {
           </>
         )}
 
-        {/* Color Picker */}
-        <SectionHeader title="Color" />
+
+
+        {/* Color / Photo Row */}
+        <SectionHeader title="Theme Color & Photo" />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing['2xl'] }}>
           {VehicleColors.map((vc) => (
             <TouchableOpacity
@@ -176,6 +194,26 @@ export default function AddVehicleModal() {
               {color === vc && <Ionicons name="checkmark" size={20} color="#FFF" />}
             </TouchableOpacity>
           ))}
+          
+          <TouchableOpacity
+            onPress={imageUri ? () => setImageUri(null) : pickImage}
+            style={{
+              width: 40, height: 40, borderRadius: 20, backgroundColor: c.surfaceElevated,
+              borderWidth: imageUri ? 3 : 1.5, borderColor: imageUri ? '#FFF' : c.border, borderStyle: imageUri ? 'solid' : 'dashed',
+              alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+            }}
+          >
+            {imageUri ? (
+              <>
+                <Image source={{ uri: imageUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                <View style={{ position: 'absolute', backgroundColor: 'rgba(0,0,0,0.4)', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                   <Ionicons name="trash" size={16} color="#FFF" />
+                </View>
+              </>
+            ) : (
+              <Ionicons name="camera" size={18} color={c.textTertiary} />
+            )}
+          </TouchableOpacity>
         </View>
 
         <Button

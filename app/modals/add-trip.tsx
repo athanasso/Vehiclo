@@ -1,10 +1,10 @@
 /**
  * Add Trip Modal with cost comparison.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Brand, Spacing, FontSizes, Radius } from '@/constants/theme';
 import { useThemeColors, Button, Input, DateInput, SectionHeader, Card } from '@/components/ui';
@@ -16,14 +16,34 @@ export default function AddTripModal() {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeVehicle, addTripLog, vehicleFuelLogs } = useData();
+  const params = useLocalSearchParams<{ distanceKm?: string }>();
+  const { vehicles, activeVehicle, addTripLog, vehicleFuelLogs } = useData();
+
+  const [selectedVehicleId, setSelectedVehicleId] = useState(activeVehicle?.id || '');
+  const selectedVehicle = useMemo(() => vehicles.find(v => v.id === selectedVehicleId) || activeVehicle, [vehicles, selectedVehicleId, activeVehicle]);
 
   const [date, setDate] = useState(todayISO());
-  const [startOdo, setStartOdo] = useState(activeVehicle?.odometer.toString() || '');
+  const [startOdo, setStartOdo] = useState(selectedVehicle?.odometer.toString() || '');
   const [endOdo, setEndOdo] = useState('');
   const [purpose, setPurpose] = useState('');
   const [duration, setDuration] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Auto-fill from background tracking & swap vehicle logic
+  useEffect(() => {
+    if (selectedVehicle) {
+      const currentOdo = selectedVehicle.odometer.toString();
+      setStartOdo(currentOdo);
+
+      if (params.distanceKm) {
+        const dist = parseFloat(params.distanceKm);
+        if (dist > 0) {
+          setEndOdo((parseInt(currentOdo) + Math.round(dist)).toString());
+          setPurpose((prev) => prev || 'Auto-detected Drive');
+        }
+      }
+    }
+  }, [selectedVehicleId, params.distanceKm, selectedVehicle]);
 
   const distance = Math.max(0, (parseInt(endOdo) || 0) - (parseInt(startOdo) || 0));
   const costPerKm = useMemo(() => calculateCostPerKm(vehicleFuelLogs), [vehicleFuelLogs]);
@@ -33,10 +53,10 @@ export default function AddTripModal() {
   );
 
   const handleSave = async () => {
-    if (!activeVehicle || distance <= 0) return;
+    if (!selectedVehicle || distance <= 0) return;
     setSaving(true);
     await addTripLog({
-      vehicleId: activeVehicle.id,
+      vehicleId: selectedVehicle.id,
       date,
       startOdometer: parseInt(startOdo) || 0,
       endOdometer: parseInt(endOdo) || 0,
@@ -73,6 +93,35 @@ export default function AddTripModal() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {vehicles.length > 1 && (
+          <View style={{ marginBottom: Spacing.xl }}>
+            <SectionHeader title="Select Vehicle" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm }}>
+              {vehicles.map((v) => (
+                <TouchableOpacity
+                  key={v.id}
+                  onPress={() => setSelectedVehicleId(v.id)}
+                  style={{
+                    paddingHorizontal: Spacing.lg,
+                    paddingVertical: Spacing.sm,
+                    borderRadius: Radius.full,
+                    backgroundColor: selectedVehicleId === v.id ? Brand.primary + '20' : c.surfaceElevated,
+                    borderWidth: 1,
+                    borderColor: selectedVehicleId === v.id ? Brand.primary : c.border,
+                  }}
+                >
+                  <Text style={{ 
+                    color: selectedVehicleId === v.id ? Brand.primary : c.textSecondary,
+                    fontWeight: selectedVehicleId === v.id ? '700' : '600',
+                  }}>
+                    {v.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         <DateInput label="Date" value={date} onChangeText={setDate} />
         <Input label="Purpose" value={purpose} onChangeText={setPurpose} placeholder="e.g. Work commute" icon="flag" />
 
@@ -176,7 +225,7 @@ export default function AddTripModal() {
             size="lg"
             loading={saving}
             icon="navigate"
-            disabled={distance <= 0 || !activeVehicle}
+            disabled={distance <= 0 || !selectedVehicle}
           />
         </View>
       </ScrollView>

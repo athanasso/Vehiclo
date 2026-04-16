@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Brand, Spacing, FontSizes, Radius, MaintenanceTypes } from '@/constants/theme';
 import { useThemeColors, Button, Input, DateInput, SectionHeader } from '@/components/ui';
@@ -16,7 +16,11 @@ export default function AddMaintenanceModal() {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeVehicle, addMaintenance } = useData();
+  const params = useLocalSearchParams();
+  const { activeVehicle, addMaintenance, updateMaintenance, vehicleMaintenance, deleteMaintenance } = useData();
+
+  const editId = typeof params.id === 'string' ? params.id : null;
+  const existingRecord = editId ? vehicleMaintenance.find(m => m.id === editId) : null;
 
   const [type, setType] = useState<MaintenanceType>('oil');
   const [description, setDescription] = useState('');
@@ -25,14 +29,32 @@ export default function AddMaintenanceModal() {
   const [odometer, setOdometer] = useState(activeVehicle?.odometer.toString() || '');
   const [nextDueDate, setNextDueDate] = useState('');
   const [nextDueOdo, setNextDueOdo] = useState('');
+  const [notes, setNotes] = useState('');
+  const [customReminderDate, setCustomReminderDate] = useState('');
+  const [customReminderNote, setCustomReminderNote] = useState('');
   const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (existingRecord) {
+      setType(existingRecord.type);
+      setDescription(existingRecord.description);
+      setDate(existingRecord.date);
+      setCost(existingRecord.cost ? existingRecord.cost.toString() : '');
+      setOdometer(existingRecord.odometer ? existingRecord.odometer.toString() : '');
+      setNextDueDate(existingRecord.nextDueDate || '');
+      setNextDueOdo(existingRecord.nextDueOdometer ? existingRecord.nextDueOdometer.toString() : '');
+      setNotes(existingRecord.notes || '');
+      setCustomReminderDate(existingRecord.customReminderDate || '');
+      setCustomReminderNote(existingRecord.customReminderNote || '');
+    }
+  }, [existingRecord]);
 
   const selectedType = MaintenanceTypes.find((t) => t.key === type);
 
   const handleSave = async () => {
     if (!activeVehicle || !description.trim()) return;
     setSaving(true);
-    await addMaintenance({
+    const payload = {
       vehicleId: activeVehicle.id,
       type,
       description: description.trim(),
@@ -41,7 +63,16 @@ export default function AddMaintenanceModal() {
       odometer: parseInt(odometer) || activeVehicle.odometer,
       nextDueDate: nextDueDate || undefined,
       nextDueOdometer: nextDueOdo ? parseInt(nextDueOdo) : undefined,
-    });
+      notes: notes.trim() || undefined,
+      customReminderDate: customReminderDate || undefined,
+      customReminderNote: customReminderNote.trim() || undefined,
+    };
+
+    if (editId) {
+      await updateMaintenance(editId, payload);
+    } else {
+      await addMaintenance(payload);
+    }
     router.back();
   };
 
@@ -68,6 +99,26 @@ export default function AddMaintenanceModal() {
     }
   };
 
+  const handleDateChange = (newDate: string) => {
+    setDate(newDate);
+    if (selectedType?.intervalMonths && selectedType.intervalMonths > 0) {
+      const d = new Date(newDate);
+      if (!isNaN(d.getTime())) {
+        d.setMonth(d.getMonth() + selectedType.intervalMonths);
+        setNextDueDate(d.toISOString().split('T')[0]);
+      }
+    }
+  };
+
+  const handleOdometerChange = (val: string) => {
+    setOdometer(val);
+    if (selectedType?.intervalKm && selectedType.intervalKm > 0) {
+      const currentOdo = parseInt(val) || 0;
+      const nextOdo = currentOdo + selectedType.intervalKm;
+      setNextDueOdo(nextOdo.toString());
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -82,7 +133,9 @@ export default function AddMaintenanceModal() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="close" size={28} color={c.text} />
         </TouchableOpacity>
-        <Text style={{ color: c.text, fontSize: FontSizes.lg, fontWeight: '700' }}>Add Service</Text>
+        <Text style={{ color: c.text, fontSize: FontSizes.lg, fontWeight: '700' }}>
+          {editId ? 'Edit Service' : 'Add Service'}
+        </Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -120,11 +173,17 @@ export default function AddMaintenanceModal() {
         </View>
 
         <Input label="Description" value={description} onChangeText={setDescription} placeholder="e.g. Full synthetic oil change" icon="create" />
-        <DateInput label="Date" value={date} onChangeText={setDate} />
+        <DateInput label="Date" value={date} onChangeText={handleDateChange} />
         <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
           <Input label="Cost" value={cost} onChangeText={setCost} keyboardType="decimal-pad" suffix="€" containerStyle={{ flex: 1 }} />
-          <Input label="Odometer" value={odometer} onChangeText={setOdometer} keyboardType="number-pad" suffix="km" containerStyle={{ flex: 1 }} />
+          <Input label="Odometer" value={odometer} onChangeText={handleOdometerChange} keyboardType="number-pad" suffix="km" containerStyle={{ flex: 1 }} />
         </View>
+        <Input 
+          label="Notes" 
+          value={notes} 
+          onChangeText={setNotes} 
+          placeholder="General service notes (part numbers, shop name, etc.)" 
+        />
 
         <SectionHeader title="Next Service (Optional)" />
         <DateInput label="Next Due Date" value={nextDueDate} onChangeText={setNextDueDate} />
@@ -139,14 +198,48 @@ export default function AddMaintenanceModal() {
           </Text>
         ) : null}
 
+        <DateInput 
+          label="Custom Reminder Date (Optional)" 
+          value={customReminderDate} 
+          onChangeText={setCustomReminderDate} 
+        />
+        <Input 
+          label="Notification Message" 
+          value={customReminderNote} 
+          onChangeText={setCustomReminderNote} 
+          placeholder="e.g. Call Dave for the timing belt" 
+        />
+
         <Button
-          title="Save Service Record"
+          title={editId ? "Update Service Record" : "Save Service Record"}
           onPress={handleSave}
           size="lg"
           loading={saving}
-          icon="construct"
+          icon={editId ? "checkmark" : "construct"}
           disabled={!description.trim() || !activeVehicle}
+          style={{ marginBottom: Spacing.md }}
         />
+
+        {editId && (
+          <Button
+            title="Delete Service Record"
+            onPress={async () => {
+              import('react-native').then(({ Alert }) => {
+                Alert.alert("Delete", "Are you sure?", [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Delete', style: 'destructive', onPress: async () => {
+                    await deleteMaintenance(editId);
+                    router.back();
+                  }}
+                ]);
+              });
+            }}
+            size="lg"
+            variant="danger"
+            icon="trash"
+            style={{ marginBottom: Spacing.md }}
+          />
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

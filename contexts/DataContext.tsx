@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { getData, setData, KEYS } from '../utils/storage';
 import { generateId, todayISO } from '../utils/formatters';
-import { supabase } from '../utils/supabase';
+import { supabase, uploadImageToSupabase, uploadPrivateFileToSupabase } from '../utils/supabase';
 import { useAuth } from './AuthContext';
 import type {
   Vehicle, FuelLog, TripLog, MaintenanceRecord,
@@ -65,6 +65,7 @@ interface DataContextType extends DataState {
   // Maintenance
   vehicleMaintenance: MaintenanceRecord[];
   addMaintenance: (rec: Omit<MaintenanceRecord, 'id'>) => Promise<void>;
+  updateMaintenance: (id: string, updates: Partial<MaintenanceRecord>) => Promise<void>;
   deleteMaintenance: (id: string) => Promise<void>;
   // Expenses
   vehicleExpenses: Expense[];
@@ -202,21 +203,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addVehicle = useCallback(async (v: Omit<Vehicle, 'id' | 'createdAt'>): Promise<Vehicle> => {
-    const newV: Vehicle = { ...v, id: generateId(), createdAt: todayISO() };
+    const newId = generateId();
+    let finalImageUri = v.imageUri;
+
+    // Cloud Upload interception
+    if (v.imageUri && v.imageUri.startsWith('file') && user?.id && !user?.isGuest) {
+      const remoteUrl = await uploadImageToSupabase(v.imageUri, 'vehicle-avatars', `${user.id}/${newId}_${Date.now()}`);
+      if (remoteUrl) finalImageUri = remoteUrl;
+    }
+
+    const newV: Vehicle = { ...v, id: newId, imageUri: finalImageUri, createdAt: todayISO() };
     const updated = [...state.vehicles, newV];
     setState((p) => ({ ...p, vehicles: updated, activeVehicleId: newV.id }));
     await setData(KEYS.VEHICLES, updated);
     await setData(KEYS.ACTIVE_VEHICLE, newV.id);
     syncToSupabase('vehicles', 'insert', newV);
     return newV;
-  }, [state.vehicles]);
+  }, [state.vehicles, user]);
 
   const updateVehicle = useCallback(async (id: string, updates: Partial<Vehicle>) => {
-    const updated = state.vehicles.map((v) => (v.id === id ? { ...v, ...updates } : v));
+    let finalUpdates = { ...updates };
+
+    // Cloud Upload interception
+    if (updates.imageUri && updates.imageUri.startsWith('file') && user?.id && !user?.isGuest) {
+      const remoteUrl = await uploadImageToSupabase(updates.imageUri, 'vehicle-avatars', `${user.id}/${id}_${Date.now()}`);
+      if (remoteUrl) finalUpdates.imageUri = remoteUrl;
+    }
+
+    const updated = state.vehicles.map((v) => (v.id === id ? { ...v, ...finalUpdates } : v));
     setState((p) => ({ ...p, vehicles: updated }));
     await setData(KEYS.VEHICLES, updated);
-    syncToSupabase('vehicles', 'update', { id, ...updates });
-  }, [state.vehicles]);
+    syncToSupabase('vehicles', 'update', { id, ...finalUpdates });
+  }, [state.vehicles, user]);
 
   const deleteVehicle = useCallback(async (id: string) => {
     const updated = state.vehicles.filter((v) => v.id !== id);
@@ -276,6 +294,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     syncToSupabase('maintenance', 'insert', newRec);
   }, [state.maintenance]);
 
+  const updateMaintenance = useCallback(async (id: string, updates: Partial<MaintenanceRecord>) => {
+    const updated = state.maintenance.map((m) => (m.id === id ? { ...m, ...updates } : m));
+    setState((p) => ({ ...p, maintenance: updated }));
+    await setData(KEYS.MAINTENANCE, updated);
+    syncToSupabase('maintenance', 'update', { id, ...updates });
+  }, [state.maintenance]);
+
   const deleteMaintenance = useCallback(async (id: string) => {
     const updated = state.maintenance.filter((m) => m.id !== id);
     setState((p) => ({ ...p, maintenance: updated }));
@@ -301,12 +326,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // ── Document CRUD ──────────────────────────────────────────
   const addDocument = useCallback(async (doc: Omit<VehicleDocument, 'id' | 'createdAt'>) => {
-    const newDoc: VehicleDocument = { ...doc, id: generateId(), createdAt: todayISO() };
+    const newId = generateId();
+    let finalUri = doc.uri;
+
+    // Cloud Intercept for Private Documents
+    if (doc.uri.startsWith('file') && user?.id && !user?.isGuest) {
+      const internalPath = await uploadPrivateFileToSupabase(doc.uri, 'vehicle-documents', `${user.id}/${newId}_${Date.now()}`);
+      if (internalPath) finalUri = internalPath;
+    }
+
+    const newDoc: VehicleDocument = { ...doc, id: newId, uri: finalUri, createdAt: todayISO() };
     const updated = [newDoc, ...state.documents];
     setState((p) => ({ ...p, documents: updated }));
     await setData(KEYS.DOCUMENTS, updated);
     syncToSupabase('documents', 'insert', newDoc);
-  }, [state.documents]);
+  }, [state.documents, user]);
 
   const deleteDocument = useCallback(async (id: string) => {
     const updated = state.documents.filter((d) => d.id !== id);
@@ -358,6 +392,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         deleteTripLog,
         vehicleMaintenance,
         addMaintenance,
+        updateMaintenance,
         deleteMaintenance,
         vehicleExpenses,
         addExpense,

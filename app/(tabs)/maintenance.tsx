@@ -95,6 +95,7 @@ export default function MaintenanceScreen() {
                       ? `${alert.description} is overdue by ${Math.abs(alert.daysLeft)} days!`
                       : `${alert.description} due in ${alert.daysLeft} days`
                   }
+                  onPress={() => router.push({ pathname: '/modals/add-maintenance', params: { id: alert.id } } as any)}
                 />
               </View>
             ))}
@@ -118,7 +119,11 @@ export default function MaintenanceScreen() {
           />
         ) : (
           history.map((record) => (
-            <Card key={record.id} style={{ marginBottom: Spacing.sm }}>
+            <Card 
+              key={record.id} 
+              style={{ marginBottom: Spacing.sm }}
+              onPress={() => router.push({ pathname: '/modals/add-maintenance', params: { id: record.id } } as any)}
+            >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
                 <View
                   style={{

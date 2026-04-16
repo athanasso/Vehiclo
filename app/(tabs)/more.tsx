@@ -11,6 +11,7 @@ import { Brand, Spacing, FontSizes, Radius } from '@/constants/theme';
 import {
   useThemeColors, Card, GlassCard, ListItem, Divider, SectionHeader, Badge,
 } from '@/components/ui';
+import { Image } from 'expo-image';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme, type ThemeMode } from '@/contexts/ThemeContext';
@@ -110,9 +111,14 @@ export default function MoreScreen() {
                 width: 48, height: 48, borderRadius: 24,
                 backgroundColor: Brand.primary + '20',
                 alignItems: 'center', justifyContent: 'center',
+                overflow: 'hidden',
               }}
             >
-              <Ionicons name="person" size={24} color={Brand.primary} />
+              {user?.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+              ) : (
+                <Ionicons name="person" size={24} color={Brand.primary} />
+              )}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ color: c.text, fontSize: FontSizes.lg, fontWeight: '700' }}>
@@ -141,13 +147,18 @@ export default function MoreScreen() {
                   width: 56, height: 56, borderRadius: 28,
                   backgroundColor: activeVehicle.color,
                   alignItems: 'center', justifyContent: 'center',
+                  overflow: 'hidden',
                 }}
               >
-                <Ionicons
-                  name={activeVehicle.type === 'electric' ? 'flash' : 'car-sport'}
-                  size={28}
-                  color="#FFF"
-                />
+                {activeVehicle.imageUri ? (
+                  <Image source={{ uri: activeVehicle.imageUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                ) : (
+                  <Ionicons
+                    name={activeVehicle.type === 'electric' ? 'flash' : 'car-sport'}
+                    size={28}
+                    color="#FFF"
+                  />
+                )}
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: c.text, fontSize: FontSizes.lg, fontWeight: '700' }}>
