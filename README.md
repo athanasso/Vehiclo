@@ -8,7 +8,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 - **Dashboard** — Realistic Vehicle Health Score (factors in mileage, age, overdue service, and log consistency), quick stats, monthly spending chart
 - **Fuel Logs** — Track fill-ups with auto fuel economy calculation
 - **Trip Logs & Auto-Tracking** — Log trips manually or enable Native Android Activity Recognition to automatically detect and import your drives
-- **Maintenance** — Service history with scheduled local push notifications for upcoming/overdue services
+- **Maintenance** — Service history with smart auto-fill intervals (time & mileage) and scheduled local push notifications for upcoming/overdue services
 - **Expense Tracking** — Category breakdown with visual charts
 - **Document Storage** — Store registration, insurance, inspection docs with expiry alerts
 - **Settings & Localization** — Dynamic unit switching (km/mi, L/gal, L/100km / MPG), support for 15+ currencies, and localized native Date Pickers (DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD)

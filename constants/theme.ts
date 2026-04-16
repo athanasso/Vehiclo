@@ -157,12 +157,13 @@ export const ExpenseCategories = [
 
 // ── Maintenance Types ──────────────────────────────────────────
 export const MaintenanceTypes = [
-  { key: 'oil', label: 'Oil Change', icon: 'oil', intervalKm: 10000 },
-  { key: 'tires', label: 'Tire Service', icon: 'tire', intervalKm: 40000 },
-  { key: 'brakes', label: 'Brake Service', icon: 'car-brake-alert', intervalKm: 30000 },
-  { key: 'battery', label: 'Battery', icon: 'car-battery', intervalKm: 50000 },
-  { key: 'filter', label: 'Air Filter', icon: 'air-filter', intervalKm: 20000 },
-  { key: 'inspection', label: 'Inspection', icon: 'clipboard-check', intervalKm: 15000 },
-  { key: 'insurance', label: 'Insurance Renewal', icon: 'shield-check', intervalKm: 0 },
-  { key: 'other', label: 'Other', icon: 'wrench', intervalKm: 0 },
+  { key: 'general', label: 'General Service', icon: 'settings', intervalKm: 10000, intervalMonths: 12 },
+  { key: 'oil', label: 'Oil Change', icon: 'oil', intervalKm: 10000, intervalMonths: 12 },
+  { key: 'tires', label: 'Tire Service', icon: 'tire', intervalKm: 40000, intervalMonths: 48 },
+  { key: 'brakes', label: 'Brake Service', icon: 'car-brake-alert', intervalKm: 30000, intervalMonths: 36 },
+  { key: 'battery', label: 'Battery', icon: 'car-battery', intervalKm: 50000, intervalMonths: 60 },
+  { key: 'filter', label: 'Air Filter', icon: 'air-filter', intervalKm: 20000, intervalMonths: 24 },
+  { key: 'inspection', label: 'Inspection', icon: 'clipboard-check', intervalKm: 15000, intervalMonths: 12 },
+  { key: 'insurance', label: 'Insurance Renewal', icon: 'shield-check', intervalKm: 0, intervalMonths: 12 },
+  { key: 'other', label: 'Other', icon: 'wrench', intervalKm: 0, intervalMonths: 0 },
 ];

@@ -45,7 +45,7 @@ export default function AddMaintenanceModal() {
     router.back();
   };
 
-  // Auto-fill next due odometer based on type interval
+  // Auto-fill next due based on type interval
   const handleTypeSelect = (key: MaintenanceType) => {
     setType(key);
     const mt = MaintenanceTypes.find((t) => t.key === key);
@@ -54,6 +54,16 @@ export default function AddMaintenanceModal() {
       if (mt.intervalKm > 0) {
         const nextOdo = (parseInt(odometer) || activeVehicle?.odometer || 0) + mt.intervalKm;
         setNextDueOdo(nextOdo.toString());
+      } else {
+        setNextDueOdo('');
+      }
+      
+      if (mt.intervalMonths && mt.intervalMonths > 0) {
+        const d = new Date(date);
+        d.setMonth(d.getMonth() + mt.intervalMonths);
+        setNextDueDate(d.toISOString().split('T')[0]);
+      } else {
+        setNextDueDate('');
       }
     }
   };
@@ -120,11 +130,14 @@ export default function AddMaintenanceModal() {
         <DateInput label="Next Due Date" value={nextDueDate} onChangeText={setNextDueDate} />
         <Input label="Next Due Odometer" value={nextDueOdo} onChangeText={setNextDueOdo} keyboardType="number-pad" suffix="km" icon="speedometer" />
 
-        {selectedType && selectedType.intervalKm > 0 && (
+        {selectedType && (selectedType.intervalKm > 0 || (selectedType.intervalMonths && selectedType.intervalMonths > 0)) ? (
           <Text style={{ color: Brand.info, fontSize: FontSizes.sm, marginTop: -Spacing.sm, marginBottom: Spacing.lg }}>
-            💡 Recommended interval: every {selectedType.intervalKm.toLocaleString()} km
+            💡 Recommended interval:{' '}
+            {selectedType.intervalKm > 0 ? `every ${selectedType.intervalKm.toLocaleString()} km` : ''}
+            {selectedType.intervalKm > 0 && selectedType.intervalMonths && selectedType.intervalMonths > 0 ? ' or ' : ''}
+            {selectedType.intervalMonths && selectedType.intervalMonths > 0 ? `${selectedType.intervalMonths} months` : ''}
           </Text>
-        )}
+        ) : null}
 
         <Button
           title="Save Service Record"
