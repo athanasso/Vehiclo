@@ -16,10 +16,13 @@ export default function AddTripModal() {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ distanceKm?: string }>();
-  const { vehicles, activeVehicle, addTripLog, vehicleFuelLogs } = useData();
+  const params = useLocalSearchParams<{ distanceKm?: string; id?: string }>();
+  const { vehicles, activeVehicle, tripLogs, addTripLog, updateTripLog, vehicleFuelLogs } = useData();
 
-  const [selectedVehicleId, setSelectedVehicleId] = useState(activeVehicle?.id || '');
+  const editingTrip = params.id ? tripLogs.find((t) => t.id === params.id) : null;
+  const isEditing = !!editingTrip;
+
+  const [selectedVehicleId, setSelectedVehicleId] = useState(editingTrip?.vehicleId || activeVehicle?.id || '');
   const selectedVehicle = useMemo(() => vehicles.find(v => v.id === selectedVehicleId) || activeVehicle, [vehicles, selectedVehicleId, activeVehicle]);
 
   const [date, setDate] = useState(todayISO());
@@ -29,8 +32,22 @@ export default function AddTripModal() {
   const [duration, setDuration] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Auto-fill from background tracking & swap vehicle logic
+  // Pre-fill form when editing
   useEffect(() => {
+    if (editingTrip) {
+      setDate(editingTrip.date);
+      setStartOdo(editingTrip.startOdometer.toString());
+      setEndOdo(editingTrip.endOdometer.toString());
+      setPurpose(editingTrip.purpose || '');
+      setDuration(editingTrip.duration?.toString() || '');
+      setSelectedVehicleId(editingTrip.vehicleId);
+      return; // Skip auto-fill logic when editing
+    }
+  }, [editingTrip]);
+
+  // Auto-fill from background tracking & swap vehicle logic (only for new trips)
+  useEffect(() => {
+    if (isEditing) return;
     if (selectedVehicle) {
       const currentOdo = selectedVehicle.odometer.toString();
       setStartOdo(currentOdo);
@@ -43,7 +60,7 @@ export default function AddTripModal() {
         }
       }
     }
-  }, [selectedVehicleId, params.distanceKm, selectedVehicle]);
+  }, [selectedVehicleId, params.distanceKm, selectedVehicle, isEditing]);
 
   const distance = Math.max(0, (parseInt(endOdo) || 0) - (parseInt(startOdo) || 0));
   const costPerKm = useMemo(() => calculateCostPerKm(vehicleFuelLogs), [vehicleFuelLogs]);
@@ -55,7 +72,8 @@ export default function AddTripModal() {
   const handleSave = async () => {
     if (!selectedVehicle || distance <= 0) return;
     setSaving(true);
-    await addTripLog({
+
+    const tripData = {
       vehicleId: selectedVehicle.id,
       date,
       startOdometer: parseInt(startOdo) || 0,
@@ -66,7 +84,13 @@ export default function AddTripModal() {
       uberComparison: comparison?.uber,
       taxiComparison: comparison?.taxi,
       duration: duration ? parseInt(duration) : undefined,
-    });
+    };
+
+    if (isEditing && editingTrip) {
+      await updateTripLog(editingTrip.id, tripData);
+    } else {
+      await addTripLog(tripData);
+    }
     router.back();
   };
 
@@ -84,7 +108,9 @@ export default function AddTripModal() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="close" size={28} color={c.text} />
         </TouchableOpacity>
-        <Text style={{ color: c.text, fontSize: FontSizes.lg, fontWeight: '700' }}>Log Trip</Text>
+        <Text style={{ color: c.text, fontSize: FontSizes.lg, fontWeight: '700' }}>
+          {isEditing ? 'Edit Trip' : 'Log Trip'}
+        </Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -220,7 +246,7 @@ export default function AddTripModal() {
 
         <View style={{ marginTop: Spacing.xl }}>
           <Button
-            title="Save Trip"
+            title={isEditing ? 'Save Changes' : 'Save Trip'}
             onPress={handleSave}
             size="lg"
             loading={saving}

@@ -1,15 +1,15 @@
 /**
- * Add Fuel Log Modal.
+ * Add / Edit Fuel Log Modal.
  */
 import { Button, Input, DateInput, SectionHeader, useThemeColors } from '@/components/ui';
 import { Brand, FontSizes, Radius, Spacing } from '@/constants/theme';
 import { useData } from '@/contexts/DataContext';
 import { todayISO } from '@/utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { recognizeText } from '@/modules/mlkit-ocr';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,7 +17,11 @@ export default function AddFuelModal() {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeVehicle, addFuelLog, vehicleFuelLogs } = useData();
+  const params = useLocalSearchParams<{ id?: string }>();
+  const { activeVehicle, fuelLogs, addFuelLog, updateFuelLog, vehicleFuelLogs } = useData();
+
+  const editingLog = params.id ? fuelLogs.find((l) => l.id === params.id) : null;
+  const isEditing = !!editingLog;
 
   const [date, setDate] = useState(todayISO());
   const [odometer, setOdometer] = useState(activeVehicle?.odometer.toString() || '');
@@ -30,13 +34,27 @@ export default function AddFuelModal() {
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
 
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (editingLog) {
+      setDate(editingLog.date);
+      setOdometer(editingLog.odometer.toString());
+      setLiters(editingLog.liters.toString());
+      setPricePerLiter(editingLog.pricePerLiter.toString());
+      setStation(editingLog.station || '');
+      setFuelType(editingLog.fuelType || 'primary');
+      setFullTank(editingLog.fullTank);
+      setNotes(editingLog.notes || '');
+    }
+  }, [editingLog]);
+
   const isBiFuel = activeVehicle?.type === 'bi_fuel';
   const totalCost = (parseFloat(liters) || 0) * (parseFloat(pricePerLiter) || 0);
   const parsedOdometer = parseInt(odometer) || 0;
 
   // Calculate distance from previous log
   const prevLog = vehicleFuelLogs
-    .filter(l => l.vehicleId === activeVehicle?.id)
+    .filter(l => l.vehicleId === activeVehicle?.id && l.id !== editingLog?.id)
     .sort((a, b) => b.odometer - a.odometer)[0];
   const distance = prevLog ? parsedOdometer - prevLog.odometer : 0;
 
@@ -92,7 +110,8 @@ export default function AddFuelModal() {
   const handleSave = async () => {
     if (!activeVehicle || !liters || !pricePerLiter) return;
     setSaving(true);
-    await addFuelLog({
+
+    const logData = {
       vehicleId: activeVehicle.id,
       date,
       odometer: parsedOdometer,
@@ -104,7 +123,13 @@ export default function AddFuelModal() {
       fullTank,
       notes: notes.trim(),
       distance: distance > 0 ? distance : undefined,
-    });
+    };
+
+    if (isEditing && editingLog) {
+      await updateFuelLog(editingLog.id, logData);
+    } else {
+      await addFuelLog(logData);
+    }
     router.back();
   };
 
@@ -122,7 +147,9 @@ export default function AddFuelModal() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="close" size={28} color={c.text} />
         </TouchableOpacity>
-        <Text style={{ color: c.text, fontSize: FontSizes.lg, fontWeight: '700' }}>Add Fuel Log</Text>
+        <Text style={{ color: c.text, fontSize: FontSizes.lg, fontWeight: '700' }}>
+          {isEditing ? 'Edit Fuel Log' : 'Add Fuel Log'}
+        </Text>
         {scanning ? (
           <ActivityIndicator size="small" color={Brand.primary} />
         ) : (
@@ -236,7 +263,7 @@ export default function AddFuelModal() {
         <Input label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional notes" multiline />
 
         <Button
-          title="Save Fuel Log"
+          title={isEditing ? 'Save Changes' : 'Save Fuel Log'}
           onPress={handleSave}
           size="lg"
           loading={saving}

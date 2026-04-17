@@ -32,7 +32,7 @@ export default function SoloDriverModal() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const {
-    activeVehicle, vehicleSoloSessions, addSoloSession, updateSoloSession,
+    activeVehicle, vehicleSoloSessions, addSoloSession, updateSoloSession, deleteSoloSession,
   } = useData();
 
   const [isActive, setIsActive] = useState(false);
@@ -97,6 +97,13 @@ export default function SoloDriverModal() {
   const totalFuelCost = vehicleSoloSessions.reduce((s, sess) => s + sess.fuelCost, 0);
   const totalTrips = vehicleSoloSessions.reduce((s, sess) => s + sess.trips, 0);
   const totalProfit = totalEarnings - totalFuelCost;
+
+  const handleDeleteSession = (id: string) => {
+    Alert.alert('Delete Session', 'Are you sure you want to delete this driving session?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteSoloSession(id) },
+    ]);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
@@ -265,15 +272,21 @@ export default function SoloDriverModal() {
                       </Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={{ color: profit >= 0 ? Brand.success : Brand.danger, fontSize: FontSizes.md, fontWeight: '700' }}>
-                        {formatCurrency(profit)}
-                      </Text>
-                      <Text style={{ color: c.textTertiary, fontSize: FontSizes.xs }}>
-                        earned {formatCurrency(sess.earnings)}
-                      </Text>
+                        <Text style={{ color: profit >= 0 ? Brand.success : Brand.danger, fontSize: FontSizes.md, fontWeight: '700' }}>
+                          {formatCurrency(profit)}
+                        </Text>
+                        <Text style={{ color: c.textTertiary, fontSize: FontSizes.xs }}>
+                          earned {formatCurrency(sess.earnings)}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                </Card>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteSession(sess.id)}
+                      style={{ position: 'absolute', top: 8, right: 8, padding: 4 }}
+                    >
+                      <Ionicons name="trash-outline" size={14} color={c.textTertiary} />
+                    </TouchableOpacity>
+                  </Card>
               );
             })
           )}

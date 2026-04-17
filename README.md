@@ -6,9 +6,9 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 
 ### Core
 - **Dashboard** — Realistic Vehicle Health Score (factors in mileage, age, overdue service, and log consistency), quick stats, monthly spending chart
-- **Fuel Logs** — Track fill-ups with auto fuel economy calculation
+- **Fuel Logs** — Track fill-ups with auto fuel economy calculation. Full inline edit and delete support with OCR receipt scanning.
 - **Trip Logs & Auto-Tracking** — Log trips manually. Alternatively, enable Native Android Activity Recognition background tracking: upon returning to the app, the dashboard proactively intercepts pending drives, prompting you to log them with smart auto-filling math and multi-vehicle UI routing.
-- **Maintenance** — Service history with smart auto-fill intervals (time & mileage) and scheduled local push notifications for upcoming/overdue services
+- **Maintenance** — Service history with smart auto-fill intervals (time & mileage), scheduled local push notifications, custom reminder messages, and full inline edit/delete support
 - **Expense Tracking** — Category breakdown with visual charts
 - **Document Storage** — Store registration, insurance, inspection docs with expiry alerts
 - **Settings & Localization** — Dynamic unit switching (km/mi, L/gal, L/100km / MPG), support for 15+ currencies, and localized native Date Pickers (DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD)
@@ -19,7 +19,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 - **Trip Cost Comparison** — Compare your actual driving cost against Uber and taxi fares
 
 ### Pro
-- **Solo Driver Mode** — Session tracking for gig workers (Uber, Bolt, Lyft, DoorDash) with earnings, fuel cost, and profit tracking
+- **Solo Driver Mode** — Session tracking for gig workers (Uber, Bolt, Lyft, DoorDash) with earnings, fuel cost, profit tracking, and session delete support
 
 ### Multi-Vehicle & Bi-Fuel Support
 - Manage multiple vehicles with a horizontal vehicle selector

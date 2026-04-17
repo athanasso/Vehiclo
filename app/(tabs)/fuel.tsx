@@ -117,7 +117,11 @@ export default function FuelTripsScreen() {
               vehicleFuelLogs
                 .sort((a, b) => b.date.localeCompare(a.date))
                 .map((log) => (
-                  <Card key={log.id} style={{ marginBottom: Spacing.sm }}>
+                  <Card 
+                    key={log.id} 
+                    style={{ marginBottom: Spacing.sm }}
+                    onPress={() => router.push({ pathname: '/modals/add-fuel', params: { id: log.id } } as any)}
+                  >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
                       <View
                         style={{
@@ -204,9 +208,9 @@ export default function FuelTripsScreen() {
                     style={{ marginBottom: Spacing.sm }}
                     onPress={() =>
                       router.push({
-                        pathname: '/modals/trip-comparison',
-                        params: { tripId: trip.id },
-                      })
+                        pathname: '/modals/add-trip',
+                        params: { id: trip.id },
+                      } as any)
                     }
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>

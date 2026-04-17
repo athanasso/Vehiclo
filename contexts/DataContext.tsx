@@ -57,10 +57,12 @@ interface DataContextType extends DataState {
   // Fuel
   vehicleFuelLogs: FuelLog[];
   addFuelLog: (log: Omit<FuelLog, 'id'>) => Promise<void>;
+  updateFuelLog: (id: string, updates: Partial<FuelLog>) => Promise<void>;
   deleteFuelLog: (id: string) => Promise<void>;
   // Trips
   vehicleTripLogs: TripLog[];
   addTripLog: (log: Omit<TripLog, 'id'>) => Promise<void>;
+  updateTripLog: (id: string, updates: Partial<TripLog>) => Promise<void>;
   deleteTripLog: (id: string) => Promise<void>;
   // Maintenance
   vehicleMaintenance: MaintenanceRecord[];
@@ -79,6 +81,7 @@ interface DataContextType extends DataState {
   vehicleSoloSessions: SoloSession[];
   addSoloSession: (session: Omit<SoloSession, 'id'>) => Promise<void>;
   updateSoloSession: (id: string, updates: Partial<SoloSession>) => Promise<void>;
+  deleteSoloSession: (id: string) => Promise<void>;
   // Refresh
   refresh: () => Promise<void>;
 }
@@ -262,6 +265,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [state.fuelLogs, state.vehicles, updateVehicle]);
 
+  const updateFuelLog = useCallback(async (id: string, updates: Partial<FuelLog>) => {
+    const updated = state.fuelLogs.map((l) => (l.id === id ? { ...l, ...updates } : l));
+    setState((p) => ({ ...p, fuelLogs: updated }));
+    await setData(KEYS.FUEL_LOGS, updated);
+    syncToSupabase('fuel_logs', 'update', { id, ...updates });
+  }, [state.fuelLogs]);
+
   const deleteFuelLog = useCallback(async (id: string) => {
     const updated = state.fuelLogs.filter((l) => l.id !== id);
     setState((p) => ({ ...p, fuelLogs: updated }));
@@ -276,6 +286,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setState((p) => ({ ...p, tripLogs: updated }));
     await setData(KEYS.TRIP_LOGS, updated);
     syncToSupabase('trip_logs', 'insert', newLog);
+  }, [state.tripLogs]);
+
+  const updateTripLog = useCallback(async (id: string, updates: Partial<TripLog>) => {
+    const updated = state.tripLogs.map((l) => (l.id === id ? { ...l, ...updates } : l));
+    setState((p) => ({ ...p, tripLogs: updated }));
+    await setData(KEYS.TRIP_LOGS, updated);
+    syncToSupabase('trip_logs', 'update', { id, ...updates });
   }, [state.tripLogs]);
 
   const deleteTripLog = useCallback(async (id: string) => {
@@ -365,6 +382,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     syncToSupabase('solo_sessions', 'update', { id, ...updates });
   }, [state.soloSessions]);
 
+  const deleteSoloSession = useCallback(async (id: string) => {
+    const updated = state.soloSessions.filter(s => s.id !== id);
+    setState(p => ({ ...p, soloSessions: updated }));
+    await setData(KEYS.SOLO_SESSIONS, updated);
+    syncToSupabase('solo_sessions', 'delete', { id });
+  }, [state.soloSessions]);
+
   // ── Derived state ──────────────────────────────────────────
   const activeVehicle = state.vehicles.find((v) => v.id === state.activeVehicleId) ?? null;
   const vid = state.activeVehicleId;
@@ -386,9 +410,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         deleteVehicle,
         vehicleFuelLogs,
         addFuelLog,
+        updateFuelLog,
         deleteFuelLog,
         vehicleTripLogs,
         addTripLog,
+        updateTripLog,
         deleteTripLog,
         vehicleMaintenance,
         addMaintenance,
@@ -403,6 +429,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         vehicleSoloSessions,
         addSoloSession,
         updateSoloSession,
+        deleteSoloSession,
         refresh: loadAll,
       }}
     >
