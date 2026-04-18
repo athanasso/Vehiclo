@@ -113,6 +113,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       // If fully authenticated with Supabase, pull from cloud!
       if (status === 'authenticated' && !user?.isGuest && user?.id) {
+        const [
           { data: vData }, { data: fData }, { data: tData }, 
           { data: mData }, { data: eData }, { data: dData }, { data: sData },
           { data: vcData }
