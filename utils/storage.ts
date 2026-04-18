@@ -13,6 +13,7 @@ const KEYS = {
   SETTINGS: '@vehiclo_settings',
   ACTIVE_VEHICLE: '@vehiclo_active_vehicle',
   SOLO_SESSIONS: '@vehiclo_solo_sessions',
+  VEHICLE_CHECKS: '@vehiclo_vehicle_checks',
 };
 
 export async function getData<T>(key: string): Promise<T | null> {

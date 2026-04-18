@@ -9,6 +9,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 - **Fuel Logs** — Track fill-ups with auto fuel economy calculation. Full inline edit and delete support with OCR receipt scanning.
 - **Trip Logs & Auto-Tracking** — Log trips manually. Alternatively, enable Native Android Activity Recognition background tracking: upon returning to the app, the dashboard proactively intercepts pending drives, prompting you to log them with smart auto-filling math and multi-vehicle UI routing.
 - **Maintenance** — Service history with smart auto-fill intervals (time & mileage), scheduled local push notifications, custom reminder messages, and full inline edit/delete support
+- **Vehicle Check** — DIY inspection checklist covering 15 items (engine oil, coolant, tire pressure, brakes, lights, etc.) with Good/Low/Attention status, reminder scheduling, edit support, and full history
 - **Expense Tracking** — Category breakdown with visual charts
 - **Document Storage** — Store registration, insurance, inspection docs with expiry alerts
 - **Settings & Localization** — Dynamic unit switching (km/mi, L/gal, L/100km / MPG), support for 15+ currencies, and localized native Date Pickers (DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD)
@@ -76,6 +77,7 @@ app/
     add-expense.tsx        # Add expense
     solo-driver.tsx        # Gig worker session tracking
     trip-comparison.tsx    # Your cost vs Uber/taxi analysis
+    vehicle-check.tsx      # DIY inspection checklist with reminders
     documents.tsx          # Document storage & scanning
     voice-logger.tsx       # Voice-to-log AI parser
 

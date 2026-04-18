@@ -110,6 +110,30 @@ export interface SoloSession {
   platform: string; // Uber, Bolt, etc.
 }
 
+export type CheckStatus = 'good' | 'low' | 'needs_attention' | 'not_checked';
+
+export type CheckItemKey =
+  | 'engine_oil' | 'coolant' | 'brake_fluid' | 'washer_fluid'
+  | 'tire_pressure' | 'tire_tread' | 'lights_front' | 'lights_rear'
+  | 'wipers' | 'battery' | 'belts' | 'air_filter'
+  | 'ac_system' | 'brakes' | 'exhaust';
+
+export interface CheckItem {
+  key: CheckItemKey;
+  status: CheckStatus;
+  note?: string;
+}
+
+export interface VehicleCheck {
+  id: string;
+  vehicleId: string;
+  date: string;
+  odometer: number;
+  items: CheckItem[];
+  overallNotes?: string;
+  nextCheckDate?: string;
+}
+
 export interface AppSettings {
   currency: string;
   distanceUnit: 'km' | 'mi';

@@ -283,14 +283,16 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      {/* Quick Actions */}
       <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.xl }}>
         <SectionHeader title="Quick Actions" />
-        <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+        <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm }}>
           <QuickAction icon="flame" label="Fuel" color={Brand.primary} onPress={() => router.push('/modals/add-fuel')} />
           <QuickAction icon="navigate" label="Trip" color={Brand.accent} onPress={() => router.push('/modals/add-trip')} />
           <QuickAction icon="construct" label="Service" color={Brand.warning} onPress={() => router.push('/modals/add-maintenance')} />
-          <QuickAction icon="mic" label="Voice" color={Brand.info} onPress={() => router.push('/modals/voice-logger')} />
+        </View>
+        <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+          <QuickAction icon="clipboard" label="Check" color={Brand.info} onPress={() => router.push('/modals/vehicle-check')} />
+          <QuickAction icon="mic" label="Voice" color={Brand.accent} onPress={() => router.push('/modals/voice-logger')} />
           <QuickAction icon="car" label="Solo" color={Brand.gig} onPress={() => router.push('/modals/solo-driver')} />
         </View>
       </View>

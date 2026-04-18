@@ -9,7 +9,7 @@ import { supabase, uploadImageToSupabase, uploadPrivateFileToSupabase } from '..
 import { useAuth } from './AuthContext';
 import type {
   Vehicle, FuelLog, TripLog, MaintenanceRecord,
-  Expense, VehicleDocument, SoloSession,
+  Expense, VehicleDocument, SoloSession, VehicleCheck,
 } from '../types';
 
 // ── Converters for Postgres snake_case ───────────────────────
@@ -44,6 +44,7 @@ interface DataState {
   expenses: Expense[];
   documents: VehicleDocument[];
   soloSessions: SoloSession[];
+  vehicleChecks: VehicleCheck[];
   isLoading: boolean;
 }
 
@@ -82,6 +83,11 @@ interface DataContextType extends DataState {
   addSoloSession: (session: Omit<SoloSession, 'id'>) => Promise<void>;
   updateSoloSession: (id: string, updates: Partial<SoloSession>) => Promise<void>;
   deleteSoloSession: (id: string) => Promise<void>;
+  // Vehicle Checks
+  vehicleChecksForVehicle: VehicleCheck[];
+  addVehicleCheck: (check: Omit<VehicleCheck, 'id'>) => Promise<void>;
+  updateVehicleCheck: (id: string, updates: Partial<VehicleCheck>) => Promise<void>;
+  deleteVehicleCheck: (id: string) => Promise<void>;
   // Refresh
   refresh: () => Promise<void>;
 }
@@ -99,6 +105,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     expenses: [],
     documents: [],
     soloSessions: [],
+    vehicleChecks: [],
     isLoading: true,
   });
 
@@ -106,9 +113,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       // If fully authenticated with Supabase, pull from cloud!
       if (status === 'authenticated' && !user?.isGuest && user?.id) {
-        const [
           { data: vData }, { data: fData }, { data: tData }, 
-          { data: mData }, { data: eData }, { data: dData }, { data: sData }
+          { data: mData }, { data: eData }, { data: dData }, { data: sData },
+          { data: vcData }
         ] = await Promise.all([
           supabase.from('vehicles').select('*'),
           supabase.from('fuel_logs').select('*'),
@@ -117,6 +124,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           supabase.from('expenses').select('*'),
           supabase.from('documents').select('*'),
           supabase.from('solo_sessions').select('*'),
+          supabase.from('vehicle_checks').select('*'),
         ]);
 
         const vehicles = toCamelCaseObj(vData) || [];
@@ -131,6 +139,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           expenses: toCamelCaseObj(eData) || [],
           documents: toCamelCaseObj(dData) || [],
           soloSessions: toCamelCaseObj(sData) || [],
+          vehicleChecks: toCamelCaseObj(vcData) || [],
           isLoading: false,
         });
         
@@ -143,7 +152,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     // Fallback: local storage (Offline or Guest Mode)
-    const [vehicles, activeId, fuel, trips, maint, expenses, docs, solo] = await Promise.all([
+    const [vehicles, activeId, fuel, trips, maint, expenses, docs, solo, checks] = await Promise.all([
       getData<Vehicle[]>(KEYS.VEHICLES),
       getData<string>(KEYS.ACTIVE_VEHICLE),
       getData<FuelLog[]>(KEYS.FUEL_LOGS),
@@ -152,6 +161,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       getData<Expense[]>(KEYS.EXPENSES),
       getData<VehicleDocument[]>(KEYS.DOCUMENTS),
       getData<SoloSession[]>(KEYS.SOLO_SESSIONS),
+      getData<VehicleCheck[]>(KEYS.VEHICLE_CHECKS),
     ]);
 
     setState({
@@ -163,6 +173,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       expenses: expenses || [],
       documents: docs || [],
       soloSessions: solo || [],
+      vehicleChecks: checks || [],
       isLoading: false,
     });
   }, [status, user?.id, user?.isGuest]);
@@ -389,6 +400,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
     syncToSupabase('solo_sessions', 'delete', { id });
   }, [state.soloSessions]);
 
+  // ── Vehicle Check CRUD ─────────────────────────────────────
+  const addVehicleCheck = useCallback(async (check: Omit<VehicleCheck, 'id'>) => {
+    const newCheck: VehicleCheck = { ...check, id: generateId() };
+    const updated = [newCheck, ...state.vehicleChecks];
+    setState((p) => ({ ...p, vehicleChecks: updated }));
+    await setData(KEYS.VEHICLE_CHECKS, updated);
+    syncToSupabase('vehicle_checks', 'insert', newCheck);
+  }, [state.vehicleChecks]);
+
+  const updateVehicleCheck = useCallback(async (id: string, updates: Partial<VehicleCheck>) => {
+    const updated = state.vehicleChecks.map(c => c.id === id ? { ...c, ...updates } : c);
+    setState((p) => ({ ...p, vehicleChecks: updated }));
+    await setData(KEYS.VEHICLE_CHECKS, updated);
+    syncToSupabase('vehicle_checks', 'update', { id, ...updates });
+  }, [state.vehicleChecks]);
+
+  const deleteVehicleCheck = useCallback(async (id: string) => {
+    const updated = state.vehicleChecks.filter(c => c.id !== id);
+    setState((p) => ({ ...p, vehicleChecks: updated }));
+    await setData(KEYS.VEHICLE_CHECKS, updated);
+    syncToSupabase('vehicle_checks', 'delete', { id });
+  }, [state.vehicleChecks]);
+
   // ── Derived state ──────────────────────────────────────────
   const activeVehicle = state.vehicles.find((v) => v.id === state.activeVehicleId) ?? null;
   const vid = state.activeVehicleId;
@@ -398,6 +432,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const vehicleExpenses = state.expenses.filter((e) => e.vehicleId === vid);
   const vehicleDocuments = state.documents.filter((d) => d.vehicleId === vid);
   const vehicleSoloSessions = state.soloSessions.filter((s) => s.vehicleId === vid);
+  const vehicleChecksForVehicle = state.vehicleChecks.filter((c) => c.vehicleId === vid);
 
   return (
     <DataContext.Provider
@@ -430,6 +465,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addSoloSession,
         updateSoloSession,
         deleteSoloSession,
+        vehicleChecksForVehicle,
+        addVehicleCheck,
+        updateVehicleCheck,
+        deleteVehicleCheck,
         refresh: loadAll,
       }}
     >
