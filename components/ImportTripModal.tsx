@@ -57,7 +57,7 @@ export function ImportTripModal() {
       // Add as trip log with route if available
       await addTripLog({
         vehicleId: activeVehicle.id,
-        date: todayISO(),
+        date: new Date(trip.startTime).toISOString(),
         startOdometer: startOdo,
         endOdometer: endOdo,
         distance,

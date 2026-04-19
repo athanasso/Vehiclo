@@ -26,7 +26,16 @@ export function formatFuelEfficiency(liters: number, km: number): string {
 
 export function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+  
+  if (dateStr.includes('T')) {
+    options.hour = '2-digit';
+    options.minute = '2-digit';
+    options.hour12 = false;
+    return d.toLocaleString('en-GB', options).replace(',', ' at');
+  }
+  
+  return d.toLocaleDateString('en-GB', options);
 }
 
 export function formatDateShort(dateStr: string): string {

@@ -2,7 +2,7 @@
  * Fuel & Trips tab — Fuel log list, trip log list, comparison button.
  */
 import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +18,36 @@ import {
 import { calculateAvgConsumption, calculateCostPerKm, compareTripCost } from '@/utils/calculations';
 
 type Tab = 'fuel' | 'trips';
+
+function getStationLogo(station?: string): string | null {
+  if (!station) return null;
+  const s = station.toLowerCase();
+  
+  const getLogo = (domain: string) => `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+  
+  // Greek & European Stations
+  if (s.includes('eko')) return getLogo('eko.gr');
+  if (s.includes('avin')) return getLogo('avinoil.gr');
+  if (s.includes('aegean')) return getLogo('aegeanoil.com');
+  if (s.includes('revoil')) return getLogo('revoil.gr');
+  if (s.includes('cyclon')) return getLogo('cyclon.gr');
+  if (s.includes('bp')) return getLogo('bp.com');
+  if (s.includes('shell')) return getLogo('shell.com');
+  if (s.includes('total')) return getLogo('totalenergies.com');
+  if (s.includes('eni')) return getLogo('eni.com');
+  if (s.includes('lukoil')) return getLogo('lukoil.com');
+  
+  // US & Global
+  if (s.includes('esso') || s.includes('exxon')) return getLogo('esso.com');
+  if (s.includes('mobil')) return getLogo('exxonmobil.com');
+  if (s.includes('texaco')) return getLogo('texaco.com');
+  if (s.includes('chevron')) return getLogo('chevron.com');
+  if (s.includes('valero')) return getLogo('valero.com');
+  if (s.includes('wawa')) return getLogo('wawa.com');
+  if (s.includes('costco')) return getLogo('costco.com');
+  
+  return null;
+}
 
 export default function FuelTripsScreen() {
   const c = useThemeColors();
@@ -128,9 +158,17 @@ export default function FuelTripsScreen() {
                           width: 44, height: 44, borderRadius: Radius.md,
                           backgroundColor: Brand.primary + '15',
                           alignItems: 'center', justifyContent: 'center',
+                          overflow: 'hidden',
                         }}
                       >
-                        <Ionicons name="flame" size={22} color={Brand.primary} />
+                        {getStationLogo(log.station) ? (
+                          <Image
+                            source={{ uri: getStationLogo(log.station) as string }}
+                            style={{ width: 44, height: 44, resizeMode: 'cover' }}
+                          />
+                        ) : (
+                          <Ionicons name="flame" size={22} color={Brand.primary} />
+                        )}
                       </View>
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>

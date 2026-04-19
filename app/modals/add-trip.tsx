@@ -26,7 +26,7 @@ export default function AddTripModal() {
   const [selectedVehicleId, setSelectedVehicleId] = useState(editingTrip?.vehicleId || activeVehicle?.id || '');
   const selectedVehicle = useMemo(() => vehicles.find(v => v.id === selectedVehicleId) || activeVehicle, [vehicles, selectedVehicleId, activeVehicle]);
 
-  const [date, setDate] = useState(todayISO());
+  const [date, setDate] = useState(new Date().toISOString());
   const [startOdo, setStartOdo] = useState(selectedVehicle?.odometer.toString() || '');
   const [endOdo, setEndOdo] = useState('');
   const [purpose, setPurpose] = useState('');
