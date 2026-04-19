@@ -33,6 +33,8 @@ export default function AddFuelModal() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [inputMode, setInputMode] = useState<'liters' | 'total'>('total');
+  const [totalInput, setTotalInput] = useState('');
 
   // Pre-fill form when editing
   useEffect(() => {
@@ -49,8 +51,15 @@ export default function AddFuelModal() {
   }, [editingLog]);
 
   const isBiFuel = activeVehicle?.type === 'bi_fuel';
-  const totalCost = (parseFloat(liters) || 0) * (parseFloat(pricePerLiter) || 0);
   const parsedOdometer = parseInt(odometer) || 0;
+
+  // Auto-calculate the missing value based on input mode
+  const computedTotalCost = inputMode === 'liters'
+    ? (parseFloat(liters) || 0) * (parseFloat(pricePerLiter) || 0)
+    : parseFloat(totalInput) || 0;
+  const computedLiters = inputMode === 'total'
+    ? (parseFloat(pricePerLiter) || 0) > 0 ? (parseFloat(totalInput) || 0) / (parseFloat(pricePerLiter) || 0) : 0
+    : parseFloat(liters) || 0;
 
   // Calculate distance from previous log
   const prevLog = vehicleFuelLogs
@@ -115,9 +124,9 @@ export default function AddFuelModal() {
       vehicleId: activeVehicle.id,
       date,
       odometer: parsedOdometer,
-      liters: parseFloat(liters),
+      liters: computedLiters,
       pricePerLiter: parseFloat(pricePerLiter),
-      totalCost,
+      totalCost: computedTotalCost,
       station: station.trim(),
       fuelType: isBiFuel ? fuelType : undefined,
       fullTank,
@@ -216,13 +225,50 @@ export default function AddFuelModal() {
           </Text>
         )}
 
-        <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-          <Input label="Liters" value={liters} onChangeText={setLiters} keyboardType="decimal-pad" suffix="L" containerStyle={{ flex: 1 }} />
-          <Input label="Price/Liter" value={pricePerLiter} onChangeText={setPricePerLiter} keyboardType="decimal-pad" suffix="€/L" containerStyle={{ flex: 1 }} />
+        {/* Input Mode Toggle */}
+        <View
+          style={{
+            flexDirection: 'row', backgroundColor: c.surfaceElevated,
+            borderRadius: Radius.md, padding: 3, marginBottom: Spacing.lg,
+          }}
+        >
+          {(['total', 'liters'] as const).map((m) => (
+            <TouchableOpacity
+              key={m}
+              activeOpacity={0.7}
+              onPress={() => setInputMode(m)}
+              style={{
+                flex: 1, paddingVertical: Spacing.sm, borderRadius: Radius.sm,
+                backgroundColor: inputMode === m ? Brand.primary : 'transparent',
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  color: inputMode === m ? '#000' : c.textSecondary,
+                  fontSize: FontSizes.sm, fontWeight: '700',
+                }}
+              >
+                {m === 'liters' ? '⛽ Liters + Price' : '💰 Total + Price'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Total Cost Display */}
-        {totalCost > 0 && (
+        {inputMode === 'liters' ? (
+          <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+            <Input label="Liters" value={liters} onChangeText={setLiters} keyboardType="decimal-pad" suffix="L" containerStyle={{ flex: 1 }} />
+            <Input label="Price/Liter" value={pricePerLiter} onChangeText={setPricePerLiter} keyboardType="decimal-pad" suffix="€/L" containerStyle={{ flex: 1 }} />
+          </View>
+        ) : (
+          <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+            <Input label="Total Cost" value={totalInput} onChangeText={setTotalInput} keyboardType="decimal-pad" suffix="€" containerStyle={{ flex: 1 }} />
+            <Input label="Price/Liter" value={pricePerLiter} onChangeText={setPricePerLiter} keyboardType="decimal-pad" suffix="€/L" containerStyle={{ flex: 1 }} />
+          </View>
+        )}
+
+        {/* Auto-calculated result */}
+        {computedTotalCost > 0 && (
           <View
             style={{
               backgroundColor: Brand.primary + '15',
@@ -231,13 +277,24 @@ export default function AddFuelModal() {
               borderWidth: 1, borderColor: Brand.primary + '30',
             }}
           >
-            <Text style={{ color: c.textSecondary, fontSize: FontSizes.sm }}>Total Cost</Text>
-            <Text style={{ color: Brand.primary, fontSize: FontSizes['3xl'], fontWeight: '800' }}>
-              €{totalCost.toFixed(2)}
-            </Text>
-            {distance > 0 && (
+            {inputMode === 'liters' ? (
+              <>
+                <Text style={{ color: c.textSecondary, fontSize: FontSizes.sm }}>Total Cost</Text>
+                <Text style={{ color: Brand.primary, fontSize: FontSizes['3xl'], fontWeight: '800' }}>
+                  €{computedTotalCost.toFixed(2)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={{ color: c.textSecondary, fontSize: FontSizes.sm }}>Calculated Volume</Text>
+                <Text style={{ color: Brand.primary, fontSize: FontSizes['3xl'], fontWeight: '800' }}>
+                  {computedLiters.toFixed(2)} L
+                </Text>
+              </>
+            )}
+            {distance > 0 && computedLiters > 0 && (
               <Text style={{ color: c.textTertiary, fontSize: FontSizes.sm, marginTop: 4 }}>
-                {((parseFloat(liters) / distance) * 100).toFixed(1)} L/100km
+                {((computedLiters / distance) * 100).toFixed(1)} L/100km
               </Text>
             )}
           </View>

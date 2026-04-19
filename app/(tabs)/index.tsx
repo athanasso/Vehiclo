@@ -1,31 +1,40 @@
 /**
  * Dashboard — Health score, quick stats, alerts, quick actions.
  */
-import React, { useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, AppState, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Brand, Spacing, FontSizes, Radius } from '@/constants/theme';
-import {
-  useThemeColors, Card, GlassCard, StatCard, QuickAction,
-  SectionHeader, AlertBanner, EmptyState, Badge,
-} from '@/components/ui';
 import { HealthGauge } from '@/components/HealthGauge';
-import { VehicleSelector } from '@/components/VehicleSelector';
 import { MiniBarChart } from '@/components/MiniBarChart';
-import { useData } from '@/contexts/DataContext';
 import {
-  calculateHealthScore, calculateAvgConsumption,
-  calculateCostPerKm, calculateTotalFuelCost,
+  AlertBanner,
+  Badge,
+  Card,
+  EmptyState,
+  GlassCard,
+  QuickAction,
+  SectionHeader,
+  StatCard,
+  useThemeColors,
+} from '@/components/ui';
+import { VehicleSelector } from '@/components/VehicleSelector';
+import { Brand, FontSizes, Radius, Spacing } from '@/constants/theme';
+import { useData } from '@/contexts/DataContext';
+import { useSettings } from '@/contexts/SettingsContext';
+import {
+  calculateAvgConsumption,
+  calculateCostPerKm,
+  calculateHealthScore,
+  calculateTotalFuelCost,
 } from '@/utils/calculations';
 import {
-  formatCurrency, formatDistanceFull, formatFuelEfficiency, formatRelativeDate,
   daysUntil,
+  formatDistanceFull,
+  formatRelativeDate
 } from '@/utils/formatters';
-import { useSettings } from '@/contexts/SettingsContext';
 import { syncMaintenanceReminders } from '@/utils/notifications';
-import { getPendingTrip, clearPendingTrip } from '@/utils/driving-detector';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useMemo } from 'react';
+import { ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DashboardScreen() {
   const c = useThemeColors();
@@ -43,44 +52,6 @@ export default function DashboardScreen() {
       syncMaintenanceReminders(vehicleMaintenance, activeVehicle).catch(() => {});
     }
   }, [vehicleMaintenance, activeVehicle, settings.notifications]);
-
-  // Check for pending auto-detected trips when app opens or returns to foreground
-  useEffect(() => {
-    const checkPendingTrips = async () => {
-      try {
-        const pending = await getPendingTrip();
-        if (pending && pending.distanceKm > 0) {
-          // Add small delay to ensure UI is ready
-          setTimeout(() => {
-            Alert.alert(
-              'Drive Detected 🚗',
-              `We detected background movement of approximately ${pending.distanceKm.toFixed(1)} km. Would you like to log this trip?`,
-              [
-                { text: 'Discard', style: 'cancel', onPress: () => clearPendingTrip() },
-                {
-                  text: 'Log Trip',
-                  style: 'default',
-                  onPress: async () => {
-                    await clearPendingTrip();
-                    router.push({ pathname: '/modals/add-trip', params: { distanceKm: pending.distanceKm.toString() } });
-                  },
-                },
-              ]
-            );
-          }, 500);
-        }
-      } catch (e) {
-        console.warn('Pending trip check failed', e);
-      }
-    };
-
-    checkPendingTrips();
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active') checkPendingTrips();
-    });
-
-    return () => subscription.remove();
-  }, [router]);
 
   const healthScore = useMemo(() => {
     if (!activeVehicle) return 0;
@@ -291,7 +262,7 @@ export default function DashboardScreen() {
           <QuickAction icon="construct" label="Service" color={Brand.warning} onPress={() => router.push('/modals/add-maintenance')} />
         </View>
         <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-          <QuickAction icon="clipboard" label="Check" color={Brand.info} onPress={() => router.push('/modals/vehicle-check')} />
+          <QuickAction icon="clipboard" label="Check" color={Brand.info} onPress={() => router.push('/modals/vehicle-check' as any)} />
           <QuickAction icon="mic" label="Voice" color={Brand.accent} onPress={() => router.push('/modals/voice-logger')} />
           <QuickAction icon="car" label="Solo" color={Brand.gig} onPress={() => router.push('/modals/solo-driver')} />
         </View>
