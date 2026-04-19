@@ -120,10 +120,21 @@ export function calculateTotalFuelCost(logs: FuelLog[]): number {
   return logs.reduce((s, l) => s + l.totalCost, 0);
 }
 
-export function calculateCostPerKm(logs: FuelLog[]): number {
+export function calculateCostPerKm(logs: FuelLog[], vehicleType: string = 'gas'): number {
   const totalCost = calculateTotalFuelCost(logs);
   const totalKm = logs.reduce((s, l) => s + (l.distance || 0), 0);
-  return totalKm > 0 ? totalCost / totalKm : 0;
+  
+  if (totalKm > 0) return totalCost / totalKm;
+
+  // Fallbacks if no fuel logs exist yet
+  switch (vehicleType) {
+    case 'electric': return 0.05; // EV charging is generally much cheaper
+    case 'hybrid': return 0.08;
+    case 'bi_fuel': return 0.09; // LPG/CNG is cheaper
+    case 'diesel': return 0.11;
+    case 'gas':
+    default: return 0.14;
+  }
 }
 
 // ── Trip Cost Comparison ───────────────────────────────────────

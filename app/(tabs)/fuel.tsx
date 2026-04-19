@@ -30,7 +30,7 @@ export default function FuelTripsScreen() {
   const [tab, setTab] = useState<Tab>('fuel');
 
   const avgConsumption = useMemo(() => calculateAvgConsumption(vehicleFuelLogs), [vehicleFuelLogs]);
-  const costPerKm = useMemo(() => calculateCostPerKm(vehicleFuelLogs), [vehicleFuelLogs]);
+  const costPerKm = useMemo(() => calculateCostPerKm(vehicleFuelLogs, activeVehicle?.type), [vehicleFuelLogs, activeVehicle?.type]);
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
@@ -225,7 +225,7 @@ export default function FuelTripsScreen() {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '600' }}>
-                          {trip.purpose || 'Trip'}
+                          {trip.purpose || 'Trip'} {trip.route && trip.route.length > 0 && '🗺️'}
                         </Text>
                         <Text style={{ color: c.textTertiary, fontSize: FontSizes.sm }}>
                           {trip.distance.toFixed(1)} km · {formatDate(trip.date)}

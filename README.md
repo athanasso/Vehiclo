@@ -7,7 +7,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 ### Core
 - **Dashboard** — Realistic Vehicle Health Score (factors in mileage, age, overdue service, and log consistency), quick stats, monthly spending chart
 - **Fuel Logs** — Track fill-ups with auto fuel economy calculation. Flexible entry modes (Total Cost vs Volume) with full inline edit/delete and OCR receipt scanning.
-- **Trip Logs & Auto-Tracking** — Log trips manually. Alternatively, enable Native Android Activity Recognition background tracking: a themed auto-detection modal proactively intercepts pending drives and asks to import them upon returning to the app, now complete with a drawn SVG route map of your GPS points.
+- **Trip Logs & Auto-Tracking** — Log trips manually. Alternatively, enable Native Android Activity Recognition background tracking: a themed auto-detection modal proactively intercepts pending drives and asks to import them upon returning to the app, complete with a drawn SVG route map of your GPS points. Route maps are saved and viewable in your trip history alongside calculated Uber/Taxi transport savings.
 - **Maintenance** — Service history with smart auto-fill intervals (time & mileage), scheduled local push notifications, custom reminder messages, and full inline edit/delete support
 - **Vehicle Check** — DIY inspection checklist covering 15 items (engine oil, coolant, tire pressure, brakes, lights, etc.) with Good/Low/Attention status, reminder scheduling, edit support, and full history
 - **Expense Tracking** — Category breakdown with visual charts
@@ -17,7 +17,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 ### AI & ML Features
 - **Voice Logger** — Speak to log fuel, trips, or expenses with live transcriptions (Powered by Native Android `SpeechRecognizer` via custom Expo module)
 - **OCR Scanning** — Fully offline, on-device receipt scanning using Google ML Kit Text Recognition with heuristic pattern extraction
-- **Trip Cost Comparison** — Compare your actual driving cost against Uber and taxi fares
+- **Trip Cost Comparison** — Compare your actual driving cost against Uber and taxi fares. Uses real data drawn from your fuel logs, or intelligent fallbacks tailored exactly to your car's engine type (EV, Hybrid, Diesel, LPG) for instant Day-1 estimates.
 
 ### Pro
 - **Solo Driver Mode** — Session tracking for gig workers (Uber, Bolt, Lyft, DoorDash) with earnings, fuel cost, profit tracking, and session delete support

@@ -8,6 +8,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Brand, Spacing, FontSizes, Radius } from '@/constants/theme';
 import { useThemeColors, Button, Input, DateInput, SectionHeader, Card } from '@/components/ui';
+import { RoutePreview } from '@/components/RoutePreview';
 import { useData } from '@/contexts/DataContext';
 import { todayISO, formatCurrency } from '@/utils/formatters';
 import { calculateCostPerKm, compareTripCost } from '@/utils/calculations';
@@ -63,7 +64,7 @@ export default function AddTripModal() {
   }, [selectedVehicleId, params.distanceKm, selectedVehicle, isEditing]);
 
   const distance = Math.max(0, (parseInt(endOdo) || 0) - (parseInt(startOdo) || 0));
-  const costPerKm = useMemo(() => calculateCostPerKm(vehicleFuelLogs), [vehicleFuelLogs]);
+  const costPerKm = useMemo(() => calculateCostPerKm(vehicleFuelLogs, selectedVehicle?.type), [vehicleFuelLogs, selectedVehicle?.type]);
   const comparison = useMemo(
     () => (distance > 0 ? compareTripCost(distance, costPerKm) : null),
     [distance, costPerKm],
@@ -173,6 +174,11 @@ export default function AddTripModal() {
               {distance} km
             </Text>
           </View>
+        )}
+
+        {/* Route Preview Map */}
+        {editingTrip?.route && editingTrip.route.length >= 2 && (
+          <RoutePreview points={editingTrip.route} color={Brand.accent} />
         )}
 
         <Input label="Duration (optional)" value={duration} onChangeText={setDuration} keyboardType="number-pad" suffix="min" icon="time" />

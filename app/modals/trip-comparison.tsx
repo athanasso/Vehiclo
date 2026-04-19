@@ -19,9 +19,9 @@ export default function TripComparisonModal() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { tripId } = useLocalSearchParams<{ tripId?: string }>();
-  const { vehicleTripLogs, vehicleFuelLogs } = useData();
+  const { vehicleTripLogs, vehicleFuelLogs, activeVehicle } = useData();
 
-  const costPerKm = useMemo(() => calculateCostPerKm(vehicleFuelLogs), [vehicleFuelLogs]);
+  const costPerKm = useMemo(() => calculateCostPerKm(vehicleFuelLogs, activeVehicle?.type), [vehicleFuelLogs, activeVehicle?.type]);
 
   // If specific trip, show that comparison
   const selectedTrip = tripId ? vehicleTripLogs.find(t => t.id === tripId) : null;

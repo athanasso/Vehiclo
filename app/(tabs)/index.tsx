@@ -61,7 +61,7 @@ export default function DashboardScreen() {
   const avgConsumption = useMemo(() => calculateAvgConsumption(vehicleFuelLogs), [vehicleFuelLogs]);
   const primaryConsumption = useMemo(() => calculateAvgConsumption(vehicleFuelLogs, 'primary'), [vehicleFuelLogs]);
   const secondaryConsumption = useMemo(() => calculateAvgConsumption(vehicleFuelLogs, 'secondary'), [vehicleFuelLogs]);
-  const costPerKm = useMemo(() => calculateCostPerKm(vehicleFuelLogs), [vehicleFuelLogs]);
+  const costPerKm = useMemo(() => calculateCostPerKm(vehicleFuelLogs, activeVehicle?.type), [vehicleFuelLogs, activeVehicle?.type]);
   const totalFuelCost = useMemo(() => calculateTotalFuelCost(vehicleFuelLogs), [vehicleFuelLogs]);
 
   // Upcoming maintenance alerts
