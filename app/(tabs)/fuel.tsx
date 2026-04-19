@@ -15,7 +15,7 @@ import { useData } from '@/contexts/DataContext';
 import {
   formatCurrency, formatDate, formatDistanceFull,
 } from '@/utils/formatters';
-import { calculateAvgConsumption, calculateCostPerKm } from '@/utils/calculations';
+import { calculateAvgConsumption, calculateCostPerKm, compareTripCost } from '@/utils/calculations';
 
 type Tab = 'fuel' | 'trips';
 
@@ -180,7 +180,7 @@ export default function FuelTripsScreen() {
               <StatCard
                 icon="map"
                 label="Total Distance"
-                value={`${vehicleTripLogs.reduce((s, t) => s + t.distance, 0).toFixed(0)} km`}
+                value={`${vehicleTripLogs.reduce((s, t) => s + (t.distance || 0), 0).toFixed(0)} km`}
                 color={Brand.info}
               />
             </View>
@@ -202,58 +202,64 @@ export default function FuelTripsScreen() {
             ) : (
               vehicleTripLogs
                 .sort((a, b) => b.date.localeCompare(a.date))
-                .map((trip) => (
-                  <Card
-                    key={trip.id}
-                    style={{ marginBottom: Spacing.sm }}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/modals/add-trip',
-                        params: { id: trip.id },
-                      } as any)
-                    }
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
-                      <View
-                        style={{
-                          width: 44, height: 44, borderRadius: Radius.md,
-                          backgroundColor: Brand.accent + '15',
-                          alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
-                        <Ionicons name="navigate" size={22} color={Brand.accent} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '600' }}>
-                          {trip.purpose || 'Trip'} {trip.route && trip.route.length > 0 && '🗺️'}
-                        </Text>
-                        <Text style={{ color: c.textTertiary, fontSize: FontSizes.sm }}>
-                          {trip.distance.toFixed(1)} km · {formatDate(trip.date)}
-                        </Text>
-                      </View>
-                      <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                        {trip.costEstimate !== undefined && (
-                          <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '700' }}>
-                            {formatCurrency(trip.costEstimate)}
+                .map((trip) => {
+                  const comp = compareTripCost(trip.distance || 0, costPerKm);
+                  const displayCost = trip.costEstimate || comp.own;
+                  const displayUber = trip.uberComparison || comp.uber;
+
+                  return (
+                    <Card
+                      key={trip.id}
+                      style={{ marginBottom: Spacing.sm }}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/modals/add-trip',
+                          params: { id: trip.id },
+                        } as any)
+                      }
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+                        <View
+                          style={{
+                            width: 44, height: 44, borderRadius: Radius.md,
+                            backgroundColor: Brand.accent + '15',
+                            alignItems: 'center', justifyContent: 'center',
+                          }}
+                        >
+                          <Ionicons name="navigate" size={22} color={Brand.accent} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '600' }}>
+                            {trip.purpose || 'Trip'} {trip.route && trip.route.length > 0 && '🗺️'}
                           </Text>
-                        )}
-                        {trip.uberComparison !== undefined && trip.costEstimate !== undefined && (
-                          <Badge
-                            text={`Save ${formatCurrency(trip.uberComparison - trip.costEstimate)}`}
-                            color={Brand.success}
-                          />
-                        )}
-                        <Ionicons name="chevron-forward" size={14} color={c.textTertiary} />
+                          <Text style={{ color: c.textTertiary, fontSize: FontSizes.sm }}>
+                            {(trip.distance || 0).toFixed(1)} km · {formatDate(trip.date)}
+                          </Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                          {displayCost !== null && (
+                            <Text style={{ color: c.text, fontSize: FontSizes.md, fontWeight: '700' }}>
+                              {formatCurrency(displayCost)}
+                            </Text>
+                          )}
+                          {displayUber !== null && displayCost !== null && (
+                            <Badge
+                              text={`Save ${formatCurrency(displayUber - displayCost)}`}
+                              color={Brand.success}
+                            />
+                          )}
+                          <Ionicons name="chevron-forward" size={14} color={c.textTertiary} />
+                        </View>
                       </View>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => deleteTripLog(trip.id)}
+                      <TouchableOpacity
+                        onPress={() => deleteTripLog(trip.id)}
                       style={{ position: 'absolute', top: 8, right: 8, padding: 4 }}
                     >
                       <Ionicons name="trash-outline" size={14} color={c.textTertiary} />
                     </TouchableOpacity>
                   </Card>
-                ))
+                  );
+                })
             )}
 
             {vehicleTripLogs.length > 0 && (

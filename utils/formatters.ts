@@ -2,8 +2,9 @@
  * Formatting utilities for currency, distance, fuel, dates etc.
  */
 
-export function formatCurrency(amount: number, currency = '€'): string {
-  return `${currency}${amount.toFixed(2)}`;
+export function formatCurrency(amount: number | null | undefined, currency = '€'): string {
+  if (amount == null) return `${currency}0.00`;
+  return `${currency}${Number(amount).toFixed(2)}`;
 }
 
 export function formatDistance(km: number): string {
