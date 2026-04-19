@@ -48,6 +48,7 @@ export interface TripLog {
   uberComparison?: number;
   taxiComparison?: number;
   duration?: number; // minutes
+  route?: { lat: number; lng: number }[]; // GPS coordinates from auto-tracking
 }
 
 export type MaintenanceType =

@@ -7,7 +7,7 @@ AI-powered vehicle management app built with Expo & React Native. Track fuel, tr
 ### Core
 - **Dashboard** — Realistic Vehicle Health Score (factors in mileage, age, overdue service, and log consistency), quick stats, monthly spending chart
 - **Fuel Logs** — Track fill-ups with auto fuel economy calculation. Flexible entry modes (Total Cost vs Volume) with full inline edit/delete and OCR receipt scanning.
-- **Trip Logs & Auto-Tracking** — Log trips manually. Alternatively, enable Native Android Activity Recognition background tracking: a themed auto-detection modal proactively intercepts pending drives and asks to import them upon returning to the app.
+- **Trip Logs & Auto-Tracking** — Log trips manually. Alternatively, enable Native Android Activity Recognition background tracking: a themed auto-detection modal proactively intercepts pending drives and asks to import them upon returning to the app, now complete with a drawn SVG route map of your GPS points.
 - **Maintenance** — Service history with smart auto-fill intervals (time & mileage), scheduled local push notifications, custom reminder messages, and full inline edit/delete support
 - **Vehicle Check** — DIY inspection checklist covering 15 items (engine oil, coolant, tire pressure, brakes, lights, etc.) with Good/Low/Attention status, reminder scheduling, edit support, and full history
 - **Expense Tracking** — Category breakdown with visual charts

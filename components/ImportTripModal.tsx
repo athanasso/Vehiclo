@@ -1,20 +1,104 @@
 /**
  * Modal that appears when a pending background trip is detected.
- * Shows trip distance/duration and lets the user import or dismiss it.
+ * Shows trip distance/duration with route visualization and lets the user import or dismiss it.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, Modal, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
+import Svg, { Polyline, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { Brand, Spacing, FontSizes, Radius } from '@/constants/theme';
 import { useThemeColors } from '@/components/ui';
 import { useData } from '@/contexts/DataContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import {
-  getPendingTrip, clearPendingTrip, type PendingTrip,
+  getPendingTrip, clearPendingTrip, type PendingTrip, type RoutePoint,
 } from '@/utils/driving-detector';
 import { todayISO } from '@/utils/formatters';
+
+// ── Route Preview Component ──────────────────────────────────
+function RoutePreview({ points, color }: { points: RoutePoint[]; color: string }) {
+  const c = useThemeColors();
+
+  const { svgPoints, startPoint, endPoint } = useMemo(() => {
+    if (points.length < 2) return { svgPoints: '', startPoint: null, endPoint: null };
+
+    const width = 280;
+    const height = 160;
+    const padding = 20;
+
+    // Find bounds
+    let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+    for (const p of points) {
+      if (p.lat < minLat) minLat = p.lat;
+      if (p.lat > maxLat) maxLat = p.lat;
+      if (p.lng < minLng) minLng = p.lng;
+      if (p.lng > maxLng) maxLng = p.lng;
+    }
+
+    const latRange = maxLat - minLat || 0.001;
+    const lngRange = maxLng - minLng || 0.001;
+
+    // Map GPS coords to SVG coordinates
+    const mapped = points.map((p) => ({
+      x: padding + ((p.lng - minLng) / lngRange) * (width - padding * 2),
+      y: padding + ((maxLat - p.lat) / latRange) * (height - padding * 2), // flip Y
+    }));
+
+    const svgStr = mapped.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    return {
+      svgPoints: svgStr,
+      startPoint: mapped[0],
+      endPoint: mapped[mapped.length - 1],
+    };
+  }, [points]);
+
+  if (points.length < 2) return null;
+
+  return (
+    <View
+      style={{
+        backgroundColor: c.surfaceElevated,
+        borderRadius: Radius.lg,
+        padding: Spacing.md,
+        marginBottom: Spacing.xl,
+        alignItems: 'center',
+      }}
+    >
+      <Text style={{ color: c.textTertiary, fontSize: FontSizes.xs, fontWeight: '600', marginBottom: Spacing.xs }}>
+        ROUTE
+      </Text>
+      <Svg width={280} height={160}>
+        <Polyline
+          points={svgPoints}
+          fill="none"
+          stroke={color}
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.8}
+        />
+        {startPoint && (
+          <Circle cx={startPoint.x} cy={startPoint.y} r={5} fill={Brand.success} />
+        )}
+        {endPoint && (
+          <Circle cx={endPoint.x} cy={endPoint.y} r={5} fill={Brand.danger} />
+        )}
+      </Svg>
+      <View style={{ flexDirection: 'row', gap: Spacing.lg, marginTop: Spacing.xs }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Brand.success }} />
+          <Text style={{ color: c.textTertiary, fontSize: 10 }}>Start</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Brand.danger }} />
+          <Text style={{ color: c.textTertiary, fontSize: 10 }}>End</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export function ImportTripModal() {
   const c = useThemeColors();
@@ -45,7 +129,7 @@ export function ImportTripModal() {
       const startOdo = activeVehicle.odometer;
       const endOdo = startOdo + distance;
 
-      // Add as trip log
+      // Add as trip log with route if available
       await addTripLog({
         vehicleId: activeVehicle.id,
         date: todayISO(),
@@ -56,6 +140,9 @@ export function ImportTripModal() {
         duration: Math.round(
           (new Date(trip.endTime).getTime() - new Date(trip.startTime).getTime()) / 60000,
         ),
+        route: trip.points.length >= 2
+          ? trip.points.map(p => ({ lat: p.lat, lng: p.lng }))
+          : undefined,
       });
 
       // Update vehicle odometer
@@ -231,6 +318,11 @@ export function ImportTripModal() {
               </Text>
             </View>
           </View>
+
+          {/* Route Preview */}
+          {trip.points.length >= 2 && (
+            <RoutePreview points={trip.points} color={Brand.primary} />
+          )}
 
           {/* Vehicle Info */}
           {activeVehicle && (

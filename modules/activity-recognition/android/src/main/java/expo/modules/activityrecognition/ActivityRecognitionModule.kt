@@ -73,6 +73,10 @@ class ActivityRecognitionModule : Module() {
       TripStore.getPendingKm(context)
     }
 
+    AsyncFunction("getPendingRoute") { ->
+      TripStore.getPendingRoute(context)
+    }
+
     AsyncFunction("clearPendingDistance") { ->
       TripStore.clearTrip(context)
     }

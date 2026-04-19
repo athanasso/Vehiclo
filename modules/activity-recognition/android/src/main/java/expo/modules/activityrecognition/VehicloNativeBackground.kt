@@ -23,11 +23,29 @@ object TripStore {
         val current = prefs.getFloat("pending_km", 0f)
         prefs.edit().putFloat("pending_km", current + (distance / 1000f)).apply()
     }
+    fun addRoutePoint(context: Context, lat: Double, lng: Double) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val existing = prefs.getString("pending_route", "[]") ?: "[]"
+        val arr = JSONArray(existing)
+        val point = JSONObject().apply {
+            put("lat", lat)
+            put("lng", lng)
+            put("time", System.currentTimeMillis())
+        }
+        arr.put(point)
+        prefs.edit().putString("pending_route", arr.toString()).apply()
+    }
     fun getPendingKm(context: Context): Float {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getFloat("pending_km", 0f)
     }
+    fun getPendingRoute(context: Context): String {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("pending_route", "[]") ?: "[]"
+    }
     fun clearTrip(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putFloat("pending_km", 0f).apply()
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putFloat("pending_km", 0f)
+            .putString("pending_route", "[]")
+            .apply()
     }
 }
 
@@ -54,6 +72,9 @@ class VehicloTrackerService : Service() {
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations) {
+                    // Record GPS coordinate for route drawing
+                    TripStore.addRoutePoint(this@VehicloTrackerService, location.latitude, location.longitude)
+                    
                     lastLocation?.let { prev ->
                         val distance = prev.distanceTo(location)
                         // Filter GPS noise, only accumulate if moved more than 5m

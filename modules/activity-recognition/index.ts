@@ -15,6 +15,10 @@ export async function getPendingDistanceKm(): Promise<number> {
   return await ActivityRecognition.getPendingDistanceKm();
 }
 
+export async function getPendingRoute(): Promise<string> {
+  return await ActivityRecognition.getPendingRoute();
+}
+
 export async function clearPendingDistance(): Promise<void> {
   await ActivityRecognition.clearPendingDistance();
 }

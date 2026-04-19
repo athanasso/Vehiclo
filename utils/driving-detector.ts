@@ -54,11 +54,17 @@ export async function isTrackingActive(): Promise<boolean> {
 }
 
 // ── Pending trip management ──────────────────────────────────
+export interface RoutePoint {
+  lat: number;
+  lng: number;
+  time: number;
+}
+
 export interface PendingTrip {
   startTime: string;
   endTime: string;
   distanceKm: number;
-  points: any[]; // Kept for compatibility, native module does not return all points
+  points: RoutePoint[];
 }
 
 export async function getPendingTrip(): Promise<PendingTrip | null> {
@@ -67,12 +73,23 @@ export async function getPendingTrip(): Promise<PendingTrip | null> {
     const distanceKm = await ActivityRecognition.getPendingDistanceKm();
     if (distanceKm < 0.5) return null;
 
-    return {
-      startTime: new Date(Date.now() - 3600000).toISOString(), // Mock time
-      endTime: new Date().toISOString(),
-      distanceKm,
-      points: [],
-    };
+    // Read stored GPS route points
+    let points: RoutePoint[] = [];
+    try {
+      const routeJson = await ActivityRecognition.getPendingRoute();
+      points = JSON.parse(routeJson || '[]');
+    } catch {
+      points = [];
+    }
+
+    const startTime = points.length > 0
+      ? new Date(points[0].time).toISOString()
+      : new Date(Date.now() - 3600000).toISOString();
+    const endTime = points.length > 0
+      ? new Date(points[points.length - 1].time).toISOString()
+      : new Date().toISOString();
+
+    return { startTime, endTime, distanceKm, points };
   } catch {
     return null;
   }
