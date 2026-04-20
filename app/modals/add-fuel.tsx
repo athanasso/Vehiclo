@@ -1,16 +1,16 @@
 /**
  * Add / Edit Fuel Log Modal.
  */
-import { Button, Input, DateInput, SectionHeader, useThemeColors } from '@/components/ui';
+import { Button, DateInput, Input, SectionHeader, useThemeColors } from '@/components/ui';
 import { Brand, FontSizes, Radius, Spacing } from '@/constants/theme';
 import { useData } from '@/contexts/DataContext';
+import { recognizeText } from '@/modules/mlkit-ocr';
 import { todayISO } from '@/utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { recognizeText } from '@/modules/mlkit-ocr';
-import React, { useState, useEffect } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AddFuelModal() {
@@ -25,7 +25,6 @@ export default function AddFuelModal() {
 
   const [date, setDate] = useState(todayISO());
   const [odometer, setOdometer] = useState(activeVehicle?.odometer.toString() || '');
-  const [liters, setLiters] = useState('');
   const [pricePerLiter, setPricePerLiter] = useState('');
   const [station, setStation] = useState('');
   const [fuelType, setFuelType] = useState<'primary' | 'secondary'>('primary');
@@ -34,7 +33,8 @@ export default function AddFuelModal() {
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [inputMode, setInputMode] = useState<'liters' | 'total'>('total');
-  const [totalInput, setTotalInput] = useState('');
+  const [liters, setLiters] = useState('');
+  const [totalCost, setTotalCost] = useState('');
 
   // Pre-fill form when editing
   useEffect(() => {
@@ -56,9 +56,9 @@ export default function AddFuelModal() {
   // Auto-calculate the missing value based on input mode
   const computedTotalCost = inputMode === 'liters'
     ? (parseFloat(liters) || 0) * (parseFloat(pricePerLiter) || 0)
-    : parseFloat(totalInput) || 0;
+    : parseFloat(totalCost) || 0;
   const computedLiters = inputMode === 'total'
-    ? (parseFloat(pricePerLiter) || 0) > 0 ? (parseFloat(totalInput) || 0) / (parseFloat(pricePerLiter) || 0) : 0
+    ? (parseFloat(pricePerLiter) || 0) > 0 ? (parseFloat(totalCost) || 0) / (parseFloat(pricePerLiter) || 0) : 0
     : parseFloat(liters) || 0;
 
   // Calculate distance from previous log
@@ -117,7 +117,7 @@ export default function AddFuelModal() {
   };
 
   const handleSave = async () => {
-    if (!activeVehicle || !liters || !pricePerLiter) return;
+    if (!activeVehicle || computedLiters <= 0 || !parseFloat(pricePerLiter)) return;
     setSaving(true);
 
     const logData = {
@@ -140,6 +140,36 @@ export default function AddFuelModal() {
       await addFuelLog(logData);
     }
     router.back();
+  };
+
+  // Handler for Liters input
+  const handleLitersChange = (value: string) => {
+    setLiters(value);
+    const l = parseFloat(value) || 0;
+    const p = parseFloat(pricePerLiter) || 0;
+    setTotalCost((l * p).toFixed(2));
+  };
+
+  // Handler for Total Cost input
+  const handleTotalChange = (value: string) => {
+    setTotalCost(value);
+    const t = parseFloat(value) || 0;
+    const p = parseFloat(pricePerLiter) || 0;
+    setLiters(p > 0 ? (t / p).toFixed(3) : '');
+  };
+
+  // Handler for Price input
+  const handlePriceChange = (value: string) => {
+    setPricePerLiter(value);
+    const p = parseFloat(value) || 0;
+    
+    if (inputMode === 'liters') {
+      const l = parseFloat(liters) || 0;
+      setTotalCost((l * p).toFixed(2));
+    } else {
+      const t = parseFloat(totalCost) || 0;
+      setLiters(p > 0 ? (t / p).toFixed(3) : '');
+    }
   };
 
   return (
@@ -257,13 +287,13 @@ export default function AddFuelModal() {
 
         {inputMode === 'liters' ? (
           <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-            <Input label="Liters" value={liters} onChangeText={setLiters} keyboardType="decimal-pad" suffix="L" containerStyle={{ flex: 1 }} />
-            <Input label="Price/Liter" value={pricePerLiter} onChangeText={setPricePerLiter} keyboardType="decimal-pad" suffix="€/L" containerStyle={{ flex: 1 }} />
+            <Input label="Liters" value={liters} onChangeText={handleLitersChange} keyboardType="decimal-pad" suffix="L" containerStyle={{ flex: 1 }} />
+            <Input label="Price/Liter" value={pricePerLiter} onChangeText={handlePriceChange} keyboardType="decimal-pad" suffix="€/L" containerStyle={{ flex: 1 }} />
           </View>
         ) : (
           <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-            <Input label="Total Cost" value={totalInput} onChangeText={setTotalInput} keyboardType="decimal-pad" suffix="€" containerStyle={{ flex: 1 }} />
-            <Input label="Price/Liter" value={pricePerLiter} onChangeText={setPricePerLiter} keyboardType="decimal-pad" suffix="€/L" containerStyle={{ flex: 1 }} />
+            <Input label="Total Cost" value={totalCost} onChangeText={handleTotalChange} keyboardType="decimal-pad" suffix="€" containerStyle={{ flex: 1 }} />
+            <Input label="Price/Liter" value={pricePerLiter} onChangeText={handlePriceChange} keyboardType="decimal-pad" suffix="€/L" containerStyle={{ flex: 1 }} />
           </View>
         )}
 
@@ -325,7 +355,7 @@ export default function AddFuelModal() {
           size="lg"
           loading={saving}
           icon="flame"
-          disabled={!liters || !pricePerLiter || !activeVehicle}
+          disabled={!activeVehicle || computedLiters <= 0 || !parseFloat(pricePerLiter)}
         />
       </ScrollView>
     </KeyboardAvoidingView>
