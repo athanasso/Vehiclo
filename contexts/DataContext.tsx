@@ -298,7 +298,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setState((p) => ({ ...p, tripLogs: updated }));
     await setData(KEYS.TRIP_LOGS, updated);
     syncToSupabase('trip_logs', 'insert', newLog);
-  }, [state.tripLogs]);
+
+    // Update vehicle odometer if trip's end odometer is higher
+    if (log.endOdometer > (state.vehicles.find(v => v.id === log.vehicleId)?.odometer || 0)) {
+      updateVehicle(log.vehicleId, { odometer: log.endOdometer });
+    }
+  }, [state.tripLogs, state.vehicles, updateVehicle]);
 
   const updateTripLog = useCallback(async (id: string, updates: Partial<TripLog>) => {
     const updated = state.tripLogs.map((l) => (l.id === id ? { ...l, ...updates } : l));

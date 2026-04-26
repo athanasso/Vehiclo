@@ -21,7 +21,7 @@ import { RoutePreview } from '@/components/RoutePreview';
 
 export function ImportTripModal() {
   const c = useThemeColors();
-  const { activeVehicle, updateVehicle, addTripLog, vehicleFuelLogs } = useData();
+  const { activeVehicle, addTripLog, vehicleFuelLogs } = useData();
   const { distanceLabel, formatDistanceValue } = useSettings();
 
   const [visible, setVisible] = useState(false);
@@ -73,8 +73,7 @@ export function ImportTripModal() {
           : undefined,
       });
 
-      // Update vehicle odometer
-      await updateVehicle(activeVehicle.id, { odometer: endOdo });
+      // Note: addTripLog now auto-updates the vehicle odometer
 
       // Clear pending trip
       await clearPendingTrip();
